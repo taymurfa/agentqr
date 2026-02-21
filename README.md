@@ -225,11 +225,11 @@ Compare AAPL vs MSFT             → side-by-side comparison
 
 | Name | Role |
 |---|---|
-| Ayush Agarwal | Team Lead, Architecture |
-| Dhruv Jhamb | Backend & Agent Logic |
-| Hamza Adwan | Data Pipeline & RAG |
-| Aarush Agarwal | Frontend & UI |
-| Taymur Faruqui | Research & Paper |
+| Ayush Agarwal | Team Lead |
+| **Aarush Agarwal** | **Primary Developer** — full-stack implementation, agents, RAG pipeline, UI |
+| Dhruv Jhamb | Member |
+| Hamza Adwan | Member |
+| Taymur Faruqui | Member |
 
 ---
 
