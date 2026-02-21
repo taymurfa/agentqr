@@ -226,7 +226,7 @@ Compare AAPL vs MSFT             → side-by-side comparison
 | Name | Role |
 |---|---|
 | Ayush Agarwal | Team Lead |
-| **Aarush Agarwal** | **Primary Developer** — full-stack implementation, agents, RAG pipeline, UI |
+| Aarush Agarwal | Full-Stack Development |
 | Dhruv Jhamb | Member |
 | Hamza Adwan | Member |
 | Taymur Faruqui | Member |
