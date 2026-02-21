@@ -1,0 +1,474 @@
+import Link from "next/link";
+import Image from "next/image";
+import {
+  MessageSquare,
+  Search,
+  TrendingUp,
+  Activity,
+  ArrowRight,
+  ChevronRight,
+  Zap,
+  BarChart3,
+  FileText,
+  Brain,
+  Shield,
+  Clock,
+  Layers,
+  Terminal,
+  BookOpen,
+  Lightbulb,
+  Target,
+} from "lucide-react";
+
+export default function HomePage() {
+  return (
+    <div className="flex flex-col -m-6">
+      {/* ============================================ */}
+      {/* HERO — Full-bleed dark section with image    */}
+      {/* ============================================ */}
+      <section className="relative min-h-[520px] overflow-hidden">
+        {/* Background image */}
+        <div className="absolute inset-0">
+          <Image
+            src="/images/hero-trading.png"
+            alt="Trading desk with financial charts"
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/50" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+        </div>
+
+        <div className="relative z-10 flex min-h-[520px] items-center px-8 lg:px-16">
+          <div className="max-w-2xl">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs font-medium text-blue-300 backdrop-blur-md">
+              <Zap className="h-3 w-3" />
+              Multi-Agent RAG Architecture
+            </div>
+
+            <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl">
+              Your AI
+              <br />
+              Research Desk.
+            </h1>
+
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-slate-300 sm:text-lg">
+              Four specialized AI agents read SEC filings, compute indicators,
+              and deliver institutional-grade analysis in seconds. Stop
+              guessing. Start knowing.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/chat"
+                className="group inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg transition-all hover:bg-slate-100 hover:shadow-xl"
+              >
+                Open Chat
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link
+                href="/research"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/40 hover:bg-white/10"
+              >
+                Browse Companies
+              </Link>
+            </div>
+
+            {/* Inline metrics */}
+            <div className="mt-10 flex gap-8 border-t border-white/10 pt-6">
+              {[
+                { val: "3.2s", label: "per ticker" },
+                { val: "1.42", label: "Sharpe ratio" },
+                { val: "92%", label: "retrieval acc." },
+              ].map((m) => (
+                <div key={m.label}>
+                  <p className="text-2xl font-bold text-white">{m.val}</p>
+                  <p className="text-xs text-slate-400">{m.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* WHAT IT DOES — asymmetric 2-col              */}
+      {/* ============================================ */}
+      <section className="bg-background px-8 py-20 lg:px-16">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            {/* Left: copy */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-blue-500">
+                What it does
+              </p>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+                Institutional research,
+                <br />
+                without the institution.
+              </h2>
+              <p className="mt-4 leading-relaxed text-muted-foreground">
+                The Agentic Quant Researcher ingests 10-K filings, earnings
+                transcripts, and live pricing data. It routes your questions to
+                specialized AI agents that work in parallel, then synthesizes
+                their findings into a single actionable report with confidence
+                scores and risk flags.
+              </p>
+              <p className="mt-3 leading-relaxed text-muted-foreground">
+                Every financial ratio is calculated by deterministic Python
+                tools, not generated by the LLM. That means no hallucinated
+                decimals, no made-up PE ratios, no guesswork.
+              </p>
+              <Link
+                href="/chat"
+                className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-blue-500 transition-colors hover:text-blue-400"
+              >
+                Try it now <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+            {/* Right: data viz image */}
+            <div className="relative overflow-hidden rounded-2xl border border-border shadow-2xl">
+              <Image
+                src="/images/data-viz.png"
+                alt="Vector knowledge graph visualization"
+                width={700}
+                height={400}
+                className="w-full"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-5">
+                <p className="text-xs font-medium text-slate-300">
+                  Knowledge Graph — Pinecone vector embeddings with
+                  namespace-per-sector isolation
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* FEATURES — 4 cards                           */}
+      {/* ============================================ */}
+      <section className="bg-muted/30 px-8 py-20 lg:px-16">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-center text-xs font-semibold uppercase tracking-widest text-blue-500">
+            Platform
+          </p>
+          <h2 className="mt-2 text-center text-3xl font-bold tracking-tight">
+            Everything in one place.
+          </h2>
+
+          <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                href: "/chat",
+                icon: MessageSquare,
+                title: "Research Chat",
+                desc: "Natural language interface to the entire research pipeline. Ask anything.",
+                color: "bg-blue-500",
+              },
+              {
+                href: "/research",
+                icon: Search,
+                title: "Company Hub",
+                desc: "Browse ingested companies, view summaries, and trigger deep-dive reports.",
+                color: "bg-violet-500",
+              },
+              {
+                href: "/strategies",
+                icon: TrendingUp,
+                title: "Strategies",
+                desc: "AI-generated trading strategies with backtested Sharpe ratios and drawdown metrics.",
+                color: "bg-emerald-500",
+              },
+              {
+                href: "/monitoring",
+                icon: Activity,
+                title: "Monitoring",
+                desc: "Live agent status, token usage, latency tracking, and system health.",
+                color: "bg-amber-500",
+              },
+            ].map((f) => (
+              <Link
+                key={f.href}
+                href={f.href}
+                className="group flex flex-col rounded-2xl border border-border bg-card p-6 transition-all duration-200 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5"
+              >
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${f.color}`}
+                >
+                  <f.icon className="h-5 w-5 text-white" />
+                </div>
+                <h3 className="mt-4 font-semibold">{f.title}</h3>
+                <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
+                  {f.desc}
+                </p>
+                <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-blue-500 opacity-0 transition-opacity group-hover:opacity-100">
+                  Open <ChevronRight className="h-3 w-3" />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* AGENTS — Meet the team                       */}
+      {/* ============================================ */}
+      <section className="bg-background px-8 py-20 lg:px-16">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-widest text-blue-500">
+            Under the hood
+          </p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight">
+            Four agents. One answer.
+          </h2>
+          <p className="mt-3 max-w-xl text-muted-foreground">
+            Each agent is a specialist. The Orchestrator decides who to call,
+            runs them in parallel, resolves conflicts, and delivers one
+            synthesized recommendation.
+          </p>
+
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                icon: Brain,
+                name: "Orchestrator",
+                desc: "Routes queries, resolves conflicting signals, assigns confidence scores.",
+                accent: "border-amber-500/50 bg-amber-500/5",
+                iconColor: "text-amber-500",
+              },
+              {
+                icon: FileText,
+                name: "Sector Researcher",
+                desc: "Searches SEC filings, earnings calls, and news via the vector knowledge base.",
+                accent: "border-blue-500/50 bg-blue-500/5",
+                iconColor: "text-blue-500",
+              },
+              {
+                icon: BarChart3,
+                name: "Fundamental Analyst",
+                desc: "PE ratios, DCF, Piotroski F-Score, debt analysis. All calculated, never guessed.",
+                accent: "border-emerald-500/50 bg-emerald-500/5",
+                iconColor: "text-emerald-500",
+              },
+              {
+                icon: TrendingUp,
+                name: "Technical Analyst",
+                desc: "RSI, MACD, Bollinger Bands, ADX. Generates buy/sell signals with confidence.",
+                accent: "border-violet-500/50 bg-violet-500/5",
+                iconColor: "text-violet-500",
+              },
+            ].map((a) => (
+              <div
+                key={a.name}
+                className={`rounded-xl border p-5 ${a.accent}`}
+              >
+                <a.icon className={`h-6 w-6 ${a.iconColor}`} />
+                <h3 className="mt-3 text-sm font-bold">{a.name}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {a.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* HOW TO USE — step by step                    */}
+      {/* ============================================ */}
+      <section className="border-y border-border bg-muted/30 px-8 py-20 lg:px-16">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid items-start gap-12 lg:grid-cols-5">
+            {/* Left heading */}
+            <div className="lg:col-span-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-blue-500">
+                Getting started
+              </p>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight">
+                How to use it.
+              </h2>
+              <p className="mt-4 leading-relaxed text-muted-foreground">
+                No setup required beyond your API keys. Open the chat and start
+                asking questions. The system handles the rest.
+              </p>
+
+              {/* Slash command examples */}
+              <div className="mt-8 space-y-2">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Quick commands
+                </p>
+                {[
+                  { cmd: "/research AAPL", label: "Full pipeline" },
+                  { cmd: "/technical NVDA", label: "Indicators" },
+                  { cmd: "/fundamental MSFT", label: "Ratios" },
+                  { cmd: "/compare AAPL, GOOGL", label: "Side-by-side" },
+                ].map((c) => (
+                  <div
+                    key={c.cmd}
+                    className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2"
+                  >
+                    <code className="text-xs font-mono font-semibold text-blue-500">
+                      {c.cmd}
+                    </code>
+                    <span className="text-[11px] text-muted-foreground">
+                      {c.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right steps */}
+            <div className="space-y-6 lg:col-span-3">
+              {[
+                {
+                  num: "01",
+                  icon: Terminal,
+                  title: "Ask anything about a company",
+                  body: 'Open the Research Chat and type naturally. Try "What are the biggest risk factors for Tesla?" or use the /research TSLA slash command for the full pipeline.',
+                },
+                {
+                  num: "02",
+                  icon: Lightbulb,
+                  title: "The Orchestrator picks agents",
+                  body: "Claude Sonnet 4 analyzes your intent and decides which combination of Sector, Fundamental, and Technical agents are needed. They execute in parallel.",
+                },
+                {
+                  num: "03",
+                  icon: Target,
+                  title: "RAG retrieves relevant context",
+                  body: "Each agent queries the Pinecone vector database, scoped to the correct sector namespace. Only the most relevant filing chunks are injected into the LLM context.",
+                },
+                {
+                  num: "04",
+                  icon: BookOpen,
+                  title: "You get a synthesized report",
+                  body: "Agent outputs are compressed, conflicts are resolved, and a final recommendation with a confidence score and risk flags is streamed back in real time.",
+                },
+              ].map((step) => (
+                <div
+                  key={step.num}
+                  className="flex gap-4 rounded-xl border border-border bg-card p-5"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+                    <step.icon className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-blue-500/50">
+                        {step.num}
+                      </span>
+                      <h3 className="text-sm font-semibold">{step.title}</h3>
+                    </div>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                      {step.body}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* VALUE PROPS — why it helps                   */}
+      {/* ============================================ */}
+      <section className="bg-background px-8 py-20 lg:px-16">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-center text-xs font-semibold uppercase tracking-widest text-blue-500">
+            Why it matters
+          </p>
+          <h2 className="mt-2 text-center text-3xl font-bold tracking-tight">
+            Built for people who take markets seriously.
+          </h2>
+
+          <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-3">
+            {[
+              {
+                icon: Clock,
+                title: "Hours → Seconds",
+                body: "A human analyst needs 4-6 hours to read a 10-K and cross-reference earnings data. The RAG pipeline processes it in under 4 seconds per entity.",
+              },
+              {
+                icon: Shield,
+                title: "Zero Hallucinated Math",
+                body: "PE ratios, Debt-to-Equity, RSI, and MACD are computed by Python's ta library and yfinance, not generated by the LLM. Every number is deterministic.",
+              },
+              {
+                icon: Layers,
+                title: "Hedge-Fund Depth",
+                body: "Cross-reference macro trends from 10-Ks, balance sheet health from financial statements, and momentum signals from OHLCV data. All synthesized in one place.",
+              },
+            ].map((v) => (
+              <div key={v.title} className="text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10">
+                  <v.icon className="h-7 w-7 text-blue-500" />
+                </div>
+                <h3 className="mt-5 font-semibold">{v.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {v.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* CTA Bar                                      */}
+      {/* ============================================ */}
+      <section className="border-t border-border bg-gradient-to-r from-blue-600 to-violet-600 px-8 py-12 lg:px-16">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 sm:flex-row">
+          <div>
+            <h3 className="text-xl font-bold text-white">
+              Ready to start researching?
+            </h3>
+            <p className="mt-1 text-sm text-white/70">
+              Open the chat, ask a question, and let the agents do the rest.
+            </p>
+          </div>
+          <Link
+            href="/chat"
+            className="group inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3 text-sm font-bold text-slate-900 shadow-lg transition-all hover:shadow-xl"
+          >
+            Launch Chat
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* FOOTER                                       */}
+      {/* ============================================ */}
+      <footer className="border-t border-border bg-card px-8 py-8 lg:px-16">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/images/logo.png"
+              alt="Logo"
+              width={28}
+              height={28}
+              className="rounded-md"
+            />
+            <span className="text-sm font-semibold">
+              Agentic Quant Researcher
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
+            <span>Claude Sonnet 4</span>
+            <span>Voyage AI Embeddings</span>
+            <span>Pinecone</span>
+            <span>LangGraph</span>
+            <span>FastAPI</span>
+            <span>Next.js 14</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

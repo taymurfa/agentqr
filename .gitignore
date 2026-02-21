@@ -1,0 +1,90 @@
+# ─── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# ─── Virtual environments ─────────────────────────────────
+.venv/
+venv/
+env/
+
+# ─── Environment variables (NEVER commit these) ───────────
+.env
+.env.local
+.env.production
+.env.*.local
+backend/.env
+frontend/.env.local
+
+# ─── API keys & secrets — extra safety net ────────────────
+*.pem
+*.key
+secrets/
+
+# ─── IDE ──────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── OS ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Data directories (large / generated files) ───────────
+backend/data/raw/
+backend/data/processed/
+backend/data/chroma_db/
+backend/data/sqlite/
+backend/*.db
+backend/*.sqlite3
+*.db
+*.sqlite3
+
+# ─── fastembed model cache (downloaded on first run) ──────
+backend/.fastembed_cache/
+.cache/
+
+# ─── Node ─────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# ─── Testing ──────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ─── Logs ─────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── LaTeX build artifacts ────────────────────────────────
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
+paper/*.fdb_latexmk
+paper/*.fls
+paper/**/*.aux
+paper/**/*.log
+
+# ─── MkDocs build ─────────────────────────────────────────
+docs/site/
+
+# ─── Misc ─────────────────────────────────────────────────
+recent.txt
+*.tmp

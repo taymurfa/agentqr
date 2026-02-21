@@ -1,0 +1,10 @@
+\section{Data Pipeline Architecture}
+
+A significant portion of the system's edge comes from its ability to ingest disparate data sources concurrently. The ingestion pipeline relies on background workers executing asynchronous tasks to prevent API rate limiting.
+
+The pipeline handles three distinct modalities of financial data:
+\begin{enumerate}
+    \item \textbf{Regulatory Documents:} The \texttt{sec-edgar-downloader} script routinely polls for new 8-K, 10-Q, and 10-K filings. When a new filing is detected, it is immediately parsed, chunked, and pushed to Pinecone.
+    \item \textbf{Time-Series Pricing:} Historical and live OHLCV data is fetched via \texttt{yfinance} and stored in a PostgreSQL relational database. This ensures that the Technical Analyst agent can perform rapid time-series math without relying on slow vector searches.
+    \item \textbf{News and RSS Feeds:} A continuous scraper monitors financial news outlets. Articles are embedded with a very short time-to-live or distinct temporal metadata tags to ensure the Sector agent prioritizes breaking news over historical context.
+\end{enumerate}

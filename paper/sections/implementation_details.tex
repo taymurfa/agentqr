@@ -1,0 +1,16 @@
+\section{Implementation Details: How We Built It}
+
+The implementation was constructed iteratively, solving the scaling bottlenecks of Large Language Models through rigid data structures and orchestrated tool use. Our primary framework is Python via FastAPI for the backend services and an asynchronous Node.js architecture for the frontend dashboard. 
+
+\subsection{Knowledge Structuring and Embeddings}
+To build the memory base of our agents, we designed a pipeline leveraging the SEC EDGAR APIs and Yahoo Finance. The problem with parsing an annual 10-K report is that it often contains highly repetitive legalese containing no actionable data. We solved this by using Python's \texttt{BeautifulSoup} to parse the XML, locate critical sections such as "Management's Discussion" and "Risk Factors", and strip all unstructured HTML wrappers. 
+
+These sections were aggressively chunked into 1000-character blocks using the LangChain \texttt{RecursiveCharacterTextSplitter}. Before generating dimensions via Voyage AI's \texttt{voyage-finance-2}, a domain-specific embedding model optimized for financial text, the text was augmented with metadata dictating the ticker, date, and sector. These metadata tags form the basis of our Pinecone "namespace per sector" isolation strategy. 
+
+\subsection{Orchestration via LangGraph}
+We deliberately did not use a single "monolithic" agent prompt. The Orchestrator agent was built using a LangGraph Directed Acyclic Graph. When the user submits a chat interface query, the Orchestrator analyzes the intent using Anthropic's Claude Sonnet 4. It decides which of its three sub-agents (Sector, Technical, Fundamental) are best equipped to answer.
+
+The Fundamental agent specifically avoids LLM math hallucination. When required, the LangGraph node assigns it a strict Python "Tool" enabling it to pull the latest PE ratios identically from PostgreSQL, preventing hallucinated decimals.
+
+\subsection{Context Compression Mechanisms}
+To solve the token bottleneck and reduce inference costs, the sub-agents operate asynchronously in the background. Once they return their findings, they are piped into a \texttt{generate\_summary()} function. This forcibly shrinks a five-page response down to just the critical, actionable bullet points before that text is finally injected into the Orchestrator's context window. This ensures the orchestrator is making final decisions on dense, high-signal information without losing track of numbers in the middle of long documents.

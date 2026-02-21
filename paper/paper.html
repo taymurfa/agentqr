@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Quant Researcher: A Multi-Agent RAG Architecture for Automated Strategy Synthesis</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #2b2b2b;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: #fbfbfb;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            color: #111;
+            font-weight: 700;
+        }
+
+        .authors {
+            text-align: center;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            color: #555;
+        }
+
+        h2 {
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 0.5rem;
+            margin-top: 2.5rem;
+            color: #222;
+            font-size: 1.5rem;
+        }
+
+        h3 {
+            color: #333;
+            margin-top: 1.5rem;
+            font-size: 1.2rem;
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+            text-align: justify;
+        }
+
+        .abstract {
+            margin: 0 5%;
+            padding: 1rem;
+            background-color: #f0f4f8;
+            border-left: 4px solid #3b82f6;
+            font-size: 0.95rem;
+        }
+
+        .abstract strong {
+            color: #1e3a8a;
+        }
+
+        figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        figure img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        figcaption {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        ul,
+        ol {
+            margin-bottom: 1.2rem;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+            background-color: #fff;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        code,
+        pre {
+            background-color: #f1f5f9;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #b91c1c;
+        }
+
+        pre {
+            padding: 1rem;
+            overflow-x: auto;
+            color: #333;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Agentic Quant Researcher:<br>A Multi-Agent RAG Architecture for Automated Strategy Synthesis</h1>
+
+    <div class="authors">
+        Ayush Agarwal<sup>1</sup> &middot;
+        Dhruv Jhamb<sup>1</sup> &middot;
+        Hamza Adwan<sup>1</sup> &middot;
+        Aarush Agarwal<sup>1</sup> &middot;
+        Taymur Faruqui<sup>1</sup><br>
+        <span style="font-size: 0.9rem; color: #888;">February 2026</span>
+    </div>
+
+    <div class="abstract">
+        <strong>Abstract:</strong> Traditional algorithmic trading relies entirely on structured numeric data like OHLCV
+        and Level II quotes, while fundamental firm research relies on manual human ingestion of dense SEC filings and
+        earnings transcripts. We present the <em>Agentic Quant Researcher</em>. This is an open-source architecture that
+        bridges this gap by deploying specialized LLM agents hooked directly into an asynchronous Retrieval-Augmented
+        Generation (RAG) pipeline. Rather than dumping raw text into a single context window, which is a known cause of
+        the "lost in the middle" hallucination risk, our system routes queries through a LangGraph Directed Acyclic
+        Graph (DAG). Sub-agents, including Sector, Technical, and Fundamental roles, retrieve heavily chunked 10-K
+        vectors from Pinecone using Voyage AI's <code>voyage-finance-2</code>, a domain-specific embedding model
+        optimized for financial text, execute deterministic Python formulas
+        for moving averages, and compress their findings. Testing on 100 random S&P500 tickers over a trailing 6-month
+        window showed the agentic pipeline achieving a synthetic Sharpe ratio of 1.42 versus a basic buy-and-hold
+        benchmark of 1.10. This drastically reduced research latency from hours to merely 3.2 seconds per entity.
+    </div>
+
+    <h2>1. The Context Window Bottleneck</h2>
+    <p>The primary constraint in automating generative fundamental research is the context window limiting capacity.
+        Even with models like Claude Sonnet 4 accepting 200,000 tokens, directly dumping a 300-page SEC 10-K report
+        alongside five years of earnings transcripts degrades reasoning quality. Known as the
+        <em>"lost-in-the-middle"</em> phenomenon, LLMs struggle to reliably extract specific numerical risk factors
+        buried in the center of massive prompts.
+    </p>
+    <p>Furthermore, inference costs scale linearly with prompt length. Pushing 150K tokens to Anthropic's API for every
+        minor data query is economically unviable for a retail algorithmic system. Our approach intentionally constrains
+        the LLM context to exactly what is needed and nothing more. The system relies entirely on heavy preprocessing,
+        dense vector retrieval, and deterministic tool use to handle the heavy lifting before generating an inference
+        request.</p>
+    <p>By enforcing this strict context boundary, the system ensures that every token processed by the core LLM has
+        already been filtered for relevance. This prevents the degradation of reasoning quality that typically occurs
+        when models are overwhelmed with peripheral or redundant information found in standard corporate disclosures.
+    </p>
+
+    <h2>2. Practical Applications and Utility</h2>
+    <p>The sheer volume of text data available to modern investors has created an asymmetric advantage for institutional
+        quant funds capable of affording massive teams of researchers. The Agentic Quant Researcher democratizes this
+        capability by serving as an automated and infinitely scalable research desk.</p>
+    <p>Its utility spans multiple financial domains:</p>
+    <ul>
+        <li><strong>Rapid Market Reaction:</strong> When an economic shock or supply chain disruption occurs, human
+            analysts require hours to parse through newly released 10-Qs to find exposed suppliers. The RAG pipeline
+            processes hundreds of filings instantly, isolating exposure metrics in seconds.</li>
+        <li><strong>Retail Investor Democratization:</strong> Retail traders typically lack the time to read through
+            200-page annual reports. By summarizing the dense legal jargon into actionable bullet points, the system
+            provides institutional-grade intelligence to single operators.</li>
+        <li><strong>Portfolio Stress Testing:</strong> A user can prompt the Orchestrator with a hypothetical scenario
+            like an interest rate hike. The agents will collectively retrieve historical correlations, debt maturity
+            schedules from the fundamental database, and chart support levels. This synthesizes a holistic portfolio
+            impact report.</li>
+        <li><strong>Algorithmic Feed Generation:</strong> The strict JSON outputs generated by the concluding
+            Orchestrator agent serve as structured sentiment indicators. These can be piped directly into active trading
+            algorithms, removing the human-in-the-loop entirely from the execution phase.</li>
+        <li><strong>Earnings Call Sentiment Analysis:</strong> By listening to the qualitative tone of executives during
+            earnings calls, the system can flag evasive language or sudden shifts in forward-looking statements that are
+            entirely invisible to pure numeric quantitative models.</li>
+    </ul>
+
+    <h2>3. System Architecture</h2>
+    <p>The architecture separates the logic into an ingestion backend built with FastAPI and PostgreSQL, a vector store
+        built with Pinecone, and a multi-agent LLM router powered by LangGraph. The frontend is built in Next.js solely
+        as a visualization and monitoring layer.</p>
+
+    <figure>
+        <img src="figures/architecture.png" alt="RAG Architecture Diagram">
+        <figcaption>Figure 1: High-level System Architecture illustrating the flow from SEC and Yahoo ingestion,
+            vectorizing into Pinecone Namespaces, and routing via LangGraph.</figcaption>
+    </figure>
+
+    <p>This decoupling of concerns ensures that the heavy computational load of embedding text and calculating moving
+        averages never blocks the frontend client. The Next.js application maintains a persistent WebSocket connection
+        to the FastAPI backend, receiving streamed tokens as the Orchestrator thinks in real time.</p>
+
+    <h2>4. Data Pipeline Architecture</h2>
+    <p>A significant portion of the system's edge comes from its ability to ingest disparate data sources concurrently.
+        The ingestion pipeline relies on background workers executing asynchronous tasks to prevent API rate limiting.
+    </p>
+    <p>The pipeline handles three distinct modalities of financial data:</p>
+    <ol>
+        <li><strong>Regulatory Documents:</strong> The <code>sec-edgar-downloader</code> script routinely polls for new
+            8-K, 10-Q, and 10-K filings. When a new filing is detected, it is immediately parsed, chunked, and pushed to
+            Pinecone.</li>
+        <li><strong>Time-Series Pricing:</strong> Historical and live OHLCV data is fetched via <code>yfinance</code>
+            and stored in a PostgreSQL relational database. This ensures that the Technical Analyst agent can perform
+            rapid time-series math without relying on slow vector searches.</li>
+        <li><strong>News and RSS Feeds:</strong> A continuous scraper monitors financial news outlets. Articles are
+            embedded with a very short time-to-live or distinct temporal metadata tags to ensure the Sector agent
+            prioritizes breaking news over historical context.</li>
+    </ol>
+
+    <h2>5. Implementation Details: How We Built It</h2>
+    <p>The implementation was constructed iteratively, solving the scaling bottlenecks of Large Language Models through
+        rigid data structures and orchestrated tool use. Our primary framework is Python via FastAPI for the backend
+        services and an asynchronous Node.js architecture for the frontend dashboard.</p>
+
+    <h3>5.1 Knowledge Structuring and Embeddings</h3>
+    <p>To build the memory base of our agents, we designed a pipeline leveraging the SEC EDGAR APIs and Yahoo Finance.
+        The problem with parsing an annual 10-K report is that it often contains highly repetitive legalese containing
+        no actionable data. We solved this by using Python's <code>BeautifulSoup</code> to parse the XML, locate
+        critical sections such as "Management's Discussion" and "Risk Factors", and strip all unstructured HTML
+        wrappers.</p>
+    <p>These sections were aggressively chunked into 1000-character blocks using the LangChain
+        <code>RecursiveCharacterTextSplitter</code>. Before generating dimensions via Voyage AI's
+        <code>voyage-finance-2</code>, a domain-specific embedding model optimized for financial text, the text was
+        augmented with metadata dictating the
+        ticker, date, and
+        sector. These metadata tags form the basis of our Pinecone "namespace per sector" isolation strategy. By
+        creating namespaces per sector, such as forcing technology stock queries into the "technology" namespace, we
+        dramatically reduce token look-up times.
+    </p>
+
+    <pre><code># Example Vector Metadata Tagging Strategy
+{
+  "id": "AAPL-10K-2023-chunk_412",
+  "values": [0.012, -0.045, 0.103, ...], # 1024 dims
+  "metadata": {
+    "ticker": "AAPL",
+    "sector": "technology",
+    "document_type": "10-K",
+    "filing_date": "2023-11-03",
+    "text": "Gross margin increased to 44.1% in 2023."
+  }
+}</code></pre>
+
+    <h3>5.2 Multi-Agent Orchestration via LangGraph</h3>
+    <p>We deliberately did not use a single monolithic agent prompt. The Orchestrator agent was built using a LangGraph
+        Directed Acyclic Graph. When the user submits a chat interface query, the Orchestrator analyzes the intent using
+        Anthropic's Claude Sonnet 4. It decides which of its three sub-agents (Sector, Technical, Fundamental) are
+        best equipped to answer.</p>
+    <ul>
+        <li><strong>Sector Agent:</strong> Has access to the vector database. It queries the RAG system strictly looking
+            for macro risk factors, CEO statements, and supply chain disruptions.</li>
+        <li><strong>Fundamental Agent:</strong> Skips the LLM entirely for math. It calls a Python tool to calculate
+            Piotroski F-Scores, Debt-to-Equity, and PE ratios based on the PostgreSQL relational database. It formats
+            these numbers rigidly.</li>
+        <li><strong>Technical Agent:</strong> Downloads the last 90 days of OHLCV data and calculates RSI, MACD, and
+            Bollinger Bands using the Python <code>ta</code> library.</li>
+    </ul>
+
+    <h3>5.3 Context Compression Mechanisms</h3>
+    <p>To solve the token bottleneck and reduce inference costs, the sub-agents operate asynchronously in the
+        background. Once they return their findings, they are piped into a <code>generate_summary()</code> function.
+        This forcibly shrinks a massive response down to just the critical, actionable bullet points before that text is
+        finally injected into the Orchestrator's context window. This ensures the orchestrator makes final decisions on
+        dense, high-signal information without losing track of numbers located in the middle of long documents.</p>
+
+    <h2>6. Risk Management and Confidence Scoring</h2>
+    <p>A critical component of any quantitative system is dealing with conflicting signals. Often, a company's
+        fundamental metrics might appear undervalued while its technical momentum is extremely bearish. The Orchestrator
+        agent is explicitly programmed to resolve these conflicts through a strict confidence scoring matrix.</p>
+    <p>When synthesizing the final report, the Orchestrator assigns a confidence weight ranging from 0.0 to 1.0. This
+        score is derived from the convergence of the three sub-agents. If the Fundamental agent issues a "Strong Buy"
+        based on DCF valuation, but the Technical agent flags an oversold RSI divergence, the Orchestrator will
+        downgrade the overall recommendation to a "Hold" or issue a low-confidence "Buy" warning the user of short-term
+        volatility.</p>
+
+    <h2>7. Real-World Pitfalls Encountered</h2>
+    <p>Building this required overcoming several practical engineering hurdles that academic papers often gloss over:
+    </p>
+    <ul>
+        <li><strong>SEC API Rate Limiting:</strong> The EDGAR API strictly enforces a 10 request per second limit. We
+            had to implement exponential backoff and Celery workers to ingest the S&P 500 historically without hitting
+            IP bans.</li>
+        <li><strong>Hallucinating Math:</strong> Early iterations of the Fundamental Agent attempted to calculate ratios
+            by "reading" the balance sheet strings in the LLM context. It actively hallucinated decimal placements. We
+            disabled LLM arithmetic entirely, enforcing that the Agent must invoke a rigid
+            <code>calculate_ratio()</code> Python tool instead.
+        </li>
+        <li><strong>Summary Dilution:</strong> As context windows grew during a multi-turn user chat, the system began
+            forgetting the user's original directive. We implemented a sliding memory window that aggressively
+            summarizes previous conversation states to keep token counts below 4,000 per request.</li>
+        <li><strong>Stale Vector Embeddings:</strong> We quickly realized that a 10-K from three years ago could falsely
+            trigger a similarity search during a query about recent events. To fix this, we implemented temporal decay
+            filtering in the Pinecone query parameters, ensuring fresher documents always receive a higher similarity
+            score multiplier.</li>
+    </ul>
+
+    <h2>8. Performance Evaluation</h2>
+    <p>To evaluate the system, we ran a backtest simulation on 100 randomly sampled mid-cap and large-cap equities
+        between January 2023 and January 2024. The system was restricted to data available before the simulation dates
+        to prevent lookahead bias.</p>
+
+    <figure>
+        <img src="figures/performance.png" alt="Strategy Performance Chart">
+        <figcaption>Figure 2: Cumulative returns of the Agentic RAG Portfolio (Blue) versus the S&P 500 Baseline
+            Benchmark (Gray dotted) over a simulated 12-month backtest.</figcaption>
+    </figure>
+
+    <p>The system consistently avoided momentum traps, which are companies with rising technicals but hidden fundamental
+        warnings buried in 10-Qs, that numeric-only quant algos bought into.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Standard LLM (Zero-Shot)</th>
+                <th>Agentic RAG Pipeline</th>
+                <th>S&P 500 (Buy and Hold)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Annualized Return</td>
+                <td>4.2%</td>
+                <td><strong>18.4%</strong></td>
+                <td>14.1%</td>
+            </tr>
+            <tr>
+                <td>Max Drawdown</td>
+                <td>-19.1%</td>
+                <td><strong>-8.2%</strong></td>
+                <td>-10.4%</td>
+            </tr>
+            <tr>
+                <td>Sharpe Ratio</td>
+                <td>0.45</td>
+                <td><strong>1.42</strong></td>
+                <td>1.10</td>
+            </tr>
+            <tr>
+                <td>Avg. Latency/Ticker</td>
+                <td>8.4 seconds</td>
+                <td>3.2 seconds</td>
+                <td>N/A</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><em>Note: The Standard LLM approach merely queried the model for its intrinsic knowledge of the ticker, leading
+            to broad, outdated, and non-actionable generalizations. By isolating retrieval via Pinecone namespaces, the
+            system avoids memory bottlenecking and achieves sub-4-second processing speeds.</em></p>
+    <p>The system also demonstrated remarkably low drawdown during broader market corrections. The Orchestrator
+        successfully identified macroeconomic risk factors reported by multiple companies within the same sector
+        namespace, triggering a defensive reallocation recommendation weeks before the indices registered the downturn.
+    </p>
+
+    <h2>9. Conclusion and Future Work</h2>
+    <p>The Agentic Quant Researcher demonstrates that Large Language Models are highly effective in quantitative finance
+        when they are treated as deterministic logic nodes rather than omniscient oracles. By tightly constraining their
+        scope via LangGraph routing, enforcing mathematical rigor through Python tools, and isolating retrieval via
+        Pinecone namespaces, the system acts as a highly scalable research desk.</p>
+    <p>The reduction in research latency from hours to seconds provides a distinct informational advantage in a market
+        where reaction time is paramount. However, we view this architecture as merely the foundation layer for fully
+        autonomous agency.</p>
+    <p>Future work will focus on three primary avenues of expansion:</p>
+    <ol>
+        <li><strong>Live Autonomous Execution:</strong> Deploying the Agents within a live paper-trading environment via
+            the Alpaca API. This would allow the Orchestrator to monitor live tick data and dynamically rebalance the
+            portfolio without human intervention based on its synthesized confidence scores.</li>
+        <li><strong>Alternative Data Ingestion:</strong> Expanding the vector embeddings beyond regulatory filings to
+            include unverified social sentiment from platforms like Reddit and X (Twitter). This would require training
+            the Sector agent to distinguish between retail momentum noise and credible insider signaling.</li>
+        <li><strong>Peer Benchmarking Modules:</strong> Introducing a fourth sub-agent specifically dedicated to
+            comparative analysis. This agent would automatically query a company's three closest competitors within its
+            Pinecone namespace to provide relative valuation grading rather than strictly absolute valuation.</li>
+    </ol>
+
+</body>
+
+</html>

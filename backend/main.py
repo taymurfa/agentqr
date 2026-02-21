@@ -1,0 +1,45 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+
+from config.settings import get_settings
+from api.routes import chat, research, companies, strategies, ingestion, health, monitoring
+from src.database.connection import engine, Base
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    await engine.dispose()
+
+
+settings = get_settings()
+
+app = FastAPI(
+    title="Agentic Quant Researcher",
+    description="Multi-agent RAG system for quantitative research",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(health.router, tags=["health"])
+app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(research.router, prefix="/api/research", tags=["research"])
+app.include_router(companies.router, prefix="/api/companies", tags=["companies"])
+app.include_router(strategies.router, prefix="/api/strategies", tags=["strategies"])
+app.include_router(ingestion.router, prefix="/api/ingestion", tags=["ingestion"])
+app.include_router(monitoring.router, prefix="/api/monitoring", tags=["monitoring"])
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host=settings.app_host, port=settings.app_port, reload=False)

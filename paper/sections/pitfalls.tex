@@ -1,0 +1,10 @@
+\section{Real-World Pitfalls Encountered}
+
+Building this framework required overcoming several practical engineering hurdles that academic papers often gloss over. These challenges dictated the transition from a naive LLM prompt to the highly-orchestrated multi-agent DAG described above.
+
+\begin{itemize}
+    \item \textbf{SEC API Rate Limiting:} The EDGAR API strictly enforces a 10 request per second limit. We implemented exponential backoff and Celery workers to ingest historical data without hitting IP bans or timeouts.
+    \item \textbf{Hallucinating Math:} Early iterations of the Fundamental Agent attempted to calculate ratios by extrapolating balance sheet strings in the LLM context. It actively hallucinated decimal placements. We disabled LLM arithmetic entirely, enforcing that the Agent must invoke a rigid \texttt{calculate\_ratio()} Python tool instead.
+    \item \textbf{Summary Dilution:} As context windows grew during a multi-turn chat, the system began "forgetting" the user's original directive. We implemented a sliding memory window that aggressively summarizes previous conversation states to keep token counts below 4000 per request.
+    \item \textbf{Stale Vector Embeddings:} We quickly realized that a 10-K from three years ago could falsely trigger a similarity search during a query about recent events. To fix this, we implemented temporal decay filtering in the Pinecone parameters, ensuring fresher documents receive a higher similarity score multiplier.
+\end{itemize}

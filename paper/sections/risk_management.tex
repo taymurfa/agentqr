@@ -1,0 +1,5 @@
+\section{Risk Management and Confidence Scoring}
+
+A critical component of any quantitative system is dealing with conflicting signals. Often, a company's fundamental metrics might appear undervalued while its technical momentum is extremely bearish. The Orchestrator agent is explicitly programmed to resolve these conflicts through a strict confidence scoring matrix.
+
+When synthesizing the final report, the Orchestrator assigns a confidence weight ranging from 0.0 to 1.0. This score is derived from the convergence of the three sub-agents. If the Fundamental agent issues a "Strong Buy" based on DCF valuation, but the Technical agent flags an oversold RSI divergence, the Orchestrator will downgrade the overall recommendation to a "Hold" or issue a low-confidence "Buy" warning the user of short-term volatility.
