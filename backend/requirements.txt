@@ -1,56 +1,55 @@
-# ─── Web framework ────────────────────────────────────────
+# ── Web framework ─────────────────────────────────────────
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 python-multipart==0.0.20
 websockets==14.1
 
-# ─── Database ─────────────────────────────────────────────
+# ── Database ──────────────────────────────────────────────
 sqlalchemy[asyncio]==2.0.36
 aiosqlite>=0.20.0          # SQLite async driver (local dev)
 asyncpg==0.30.0            # PostgreSQL async driver (production)
 alembic==1.14.1
-psycopg2-binary==2.9.10
 
-# ─── Vector DB ────────────────────────────────────────────
+# ── Vector DB ─────────────────────────────────────────────
 pinecone-client==5.0.1
 
-# ─── LLM ──────────────────────────────────────────────────
+# ── LLM ───────────────────────────────────────────────────
 anthropic==0.42.0
 
-# ─── Embeddings (local — no API key needed) ───────────────
-fastembed>=0.7.0            # BAAI/bge-small-en-v1.5, 384-dim
+# ── Local embeddings (no API key needed) ──────────────────
+fastembed==0.7.4
 
-# ─── Data ingestion ───────────────────────────────────────
-yfinance>=1.2.0             # NOTE: do NOT pin to 0.2.x — it is broken
-curl_cffi>=0.13.0           # Required by yfinance 1.x for Yahoo API requests
-sec-edgar-downloader>=5.0.0
+# ── Data ingestion ────────────────────────────────────────
+# NOTE: yfinance 0.2.50 is broken (Yahoo API format change).
+#       Must be >= 0.2.52 which ships curl_cffi for correct TLS handling.
+yfinance>=0.2.52
 beautifulsoup4==4.12.3
 lxml==5.3.0
+sec-edgar-downloader
 feedparser==6.0.11
-polygon-api-client>=1.12.0  # Optional: used as Polygon.io fallback for OHLCV
+polygon-api-client>=1.12.0  # optional — Yahoo Finance used as fallback
 
-# ─── Document processing ──────────────────────────────────
+# ── Document processing ───────────────────────────────────
 pypdf==5.1.0
-tiktoken==0.8.0
 
-# ─── Technical analysis ───────────────────────────────────
-ta==0.11.0                  # RSI, MACD, Bollinger Bands, ADX, ATR etc.
+# ── Technical analysis ────────────────────────────────────
+ta==0.11.0
+pandas==2.2.3
+numpy==2.2.1
 
-# ─── Reports ──────────────────────────────────────────────
-reportlab==4.2.5
-jinja2==3.1.5
-
-# ─── Utilities ────────────────────────────────────────────
+# ── Utilities ─────────────────────────────────────────────
 pydantic==2.10.4
 pydantic-settings==2.7.1
 python-dotenv==1.0.1
 httpx==0.28.1
-numpy==2.2.1
-pandas==2.2.3
 
-# ─── Background tasks ─────────────────────────────────────
+# ── Background tasks ──────────────────────────────────────
 arq==0.26.1
 
-# ─── Testing ──────────────────────────────────────────────
+# ── Reports ───────────────────────────────────────────────
+reportlab==4.2.5
+jinja2==3.1.5
+
+# ── Testing ───────────────────────────────────────────────
 pytest==8.3.4
 pytest-asyncio==0.25.0

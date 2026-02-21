@@ -5,28 +5,43 @@ import { useParams } from "next/navigation";
 import { companiesApi, researchApi } from "@/lib/api";
 import { formatNumber, formatPercent } from "@/lib/utils";
 import {
-  Loader2,
-  RefreshCw,
-  ArrowLeft,
-  TrendingUp,
-  BarChart3,
-  Shield,
-  DollarSign,
-  Activity,
-  Building2,
-  FileText,
-  Brain,
-  LineChart,
-  BookOpen,
-  Globe,
-  CheckCircle2,
-  AlertTriangle,
+  Loader2, RefreshCw, ArrowLeft, TrendingUp, BarChart3,
+  Shield, DollarSign, Activity, Building2, FileText,
+  Brain, LineChart, BookOpen, Globe, CheckCircle2, AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-// ─── Markdown renderer with consistent table/prose styles ───────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface Company {
+  name?: string;
+  sector?: string;
+  industry?: string;
+  description?: string;
+  market_cap?: number;
+  research_summary?: string;
+  fundamentals?: Record<string, number | null>;
+}
+
+interface AgentResult {
+  agent: string;
+  content?: string;
+  error?: string;
+  signal?: { signal: string; confidence: number };
+  health_score?: number;
+  ratios?: Record<string, unknown>;
+}
+
+interface ResearchResult {
+  ticker?: string;
+  synthesis?: string;
+  agents_used?: string[];
+  agent_results?: AgentResult[];
+  error?: string;
+}
+
+// ─── Markdown renderer ────────────────────────────────────────────────────────
 function MdContent({ content }: { content: string }) {
   return (
     <div
@@ -51,37 +66,28 @@ function MdContent({ content }: { content: string }) {
 }
 
 // ─── Agent tab config ─────────────────────────────────────────────────────────
-const AGENT_CONFIG: Record<
-  string,
-  { label: string; icon: React.ElementType; color: string; bg: string; border: string }
-> = {
+const AGENT_CONFIG: Record<string, {
+  label: string;
+  icon: React.ElementType;
+  color: string;
+  bg: string;
+  border: string;
+}> = {
   sector_researcher: {
-    label: "Sector Researcher",
-    icon: Globe,
-    color: "text-violet-400",
-    bg: "bg-violet-500/10",
-    border: "border-violet-500/30",
+    label: "Sector Researcher", icon: Globe,
+    color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/30",
   },
   technical_analyst: {
-    label: "Technical Analyst",
-    icon: LineChart,
-    color: "text-blue-400",
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/30",
+    label: "Technical Analyst", icon: LineChart,
+    color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30",
   },
   fundamental_analyst: {
-    label: "Fundamental Analyst",
-    icon: BookOpen,
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/30",
+    label: "Fundamental Analyst", icon: BookOpen,
+    color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30",
   },
   orchestrator: {
-    label: "Orchestrator",
-    icon: Brain,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/30",
+    label: "Orchestrator", icon: Brain,
+    color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30",
   },
 };
 
@@ -89,20 +95,20 @@ const AGENT_CONFIG: Record<
 export default function CompanyDetailPage() {
   const params = useParams();
   const ticker = (params.ticker as string)?.toUpperCase();
-  const [company, setCompany] = useState<Record<string, unknown> | null>(null);
-  const [researchResult, setResearchResult] = useState<Record<string, unknown> | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [researchResult, setResearchResult] = useState<ResearchResult | null>(null);
   const [researching, setResearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
 
   useEffect(() => {
     if (ticker) loadCompany();
-  }, [ticker]);
+  }, [ticker]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadCompany() {
     setLoading(true);
     try {
-      const data = await companiesApi.get(ticker);
+      const data = await companiesApi.get(ticker) as Company;
       setCompany(data);
     } catch {
       setCompany(null);
@@ -115,10 +121,9 @@ export default function CompanyDetailPage() {
     setResearchResult(null);
     setActiveAgent(null);
     try {
-      const result = await researchApi.run(ticker);
+      const result = await researchApi.run(ticker) as ResearchResult;
       setResearchResult(result);
-      // Select first agent tab by default
-      const agents = (result.agents_used as string[]) || [];
+      const agents = result.agents_used ?? [];
       if (agents.length > 0) setActiveAgent(agents[0]);
       await loadCompany();
     } catch (e) {
@@ -136,7 +141,7 @@ export default function CompanyDetailPage() {
     );
   }
 
-  if (!company || company.error) {
+  if (!company) {
     return (
       <div className="py-12 text-center">
         <h2 className="text-xl font-bold">Company Not Found</h2>
@@ -148,13 +153,10 @@ export default function CompanyDetailPage() {
     );
   }
 
-  const fundamentals = (company.fundamentals as Record<string, number | null>) || {};
-  const hasStoredSummary = !!company.research_summary;
-  const agentResults = (researchResult?.agent_results as Record<string, unknown>[]) || [];
-  const agentsUsed = (researchResult?.agents_used as string[]) || [];
-
-  const getAgentResult = (name: string) =>
-    agentResults.find((r) => r.agent === name);
+  const fundamentals = company.fundamentals ?? {};
+  const agentsUsed = researchResult?.agents_used ?? [];
+  const agentResults = researchResult?.agent_results ?? [];
+  const getAgentResult = (name: string) => agentResults.find((r) => r.agent === name);
 
   return (
     <div className="space-y-6">
@@ -165,16 +167,16 @@ export default function CompanyDetailPage() {
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">
-            {(company.name as string) || ticker}
+            {company.name || ticker}
             <span className="ml-2 text-lg font-normal text-muted-foreground">({ticker})</span>
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Building2 className="h-3.5 w-3.5" />
-            <span>{company.sector as string}</span>
+            <span>{company.sector}</span>
             {company.industry && (
               <>
                 <span className="text-muted-foreground/40">·</span>
-                <span>{company.industry as string}</span>
+                <span>{company.industry}</span>
               </>
             )}
           </div>
@@ -192,7 +194,7 @@ export default function CompanyDetailPage() {
       {/* ── Key Metrics ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {[
-          { label: "Market Cap", value: company.market_cap ? formatNumber(company.market_cap as number) : "N/A", icon: DollarSign, color: "text-emerald-500" },
+          { label: "Market Cap", value: company.market_cap ? formatNumber(company.market_cap) : "N/A", icon: DollarSign, color: "text-emerald-500" },
           { label: "P/E Ratio", value: fundamentals.pe_ratio?.toFixed(2) ?? "N/A", icon: BarChart3, color: "text-blue-500" },
           { label: "Profit Margin", value: fundamentals.profit_margin != null ? formatPercent(fundamentals.profit_margin) : "N/A", icon: TrendingUp, color: "text-violet-500" },
           { label: "Revenue Growth", value: fundamentals.revenue_growth != null ? formatPercent(fundamentals.revenue_growth) : "N/A", icon: Activity, color: "text-amber-500" },
@@ -247,8 +249,7 @@ export default function CompanyDetailPage() {
               <h3 className="font-semibold text-blue-400">Multi-Agent Research Running</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 Sector Researcher · Fundamental Analyst · Technical Analyst are working in sequence.
-                <br />
-                This typically takes 45–90 seconds.
+                <br />This typically takes 45–90 seconds.
               </p>
             </div>
             <div className="flex gap-3">
@@ -271,19 +272,17 @@ export default function CompanyDetailPage() {
             <div className="flex-1">
               <p className="text-sm font-semibold text-emerald-400">Research Complete</p>
               <p className="text-xs text-muted-foreground">
-                {agentsUsed.filter(a => !(agentResults.find(r => r.agent === a)?.error)).length} of {agentsUsed.length} agents succeeded · {new Date().toLocaleTimeString()}
+                {agentsUsed.filter(a => !getAgentResult(a)?.error).length} of {agentsUsed.length} agents succeeded · {new Date().toLocaleTimeString()}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {agentsUsed.map((agent) => {
                 const cfg = AGENT_CONFIG[agent];
-                const agentResult = agentResults.find(r => r.agent === agent);
-                const hasError = !!agentResult?.error;
                 if (!cfg) return null;
-                const Icon = hasError ? AlertTriangle : cfg.icon;
+                const hasErr = !!getAgentResult(agent)?.error;
+                const Icon = hasErr ? AlertTriangle : cfg.icon;
                 return (
-                  <span key={agent} className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${hasError ? "bg-orange-500/10 text-orange-400" : `${cfg.bg} ${cfg.color}`
-                    }`}>
+                  <span key={agent} className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${hasErr ? "bg-orange-500/10 text-orange-400" : `${cfg.bg} ${cfg.color}`}`}>
                     <Icon className="h-3 w-3" /> {cfg.label}
                   </span>
                 );
@@ -291,7 +290,7 @@ export default function CompanyDetailPage() {
             </div>
           </div>
 
-          {/* Orchestrator synthesis — full width card */}
+          {/* Orchestrator synthesis */}
           <div className="rounded-xl border border-emerald-500/20 bg-card">
             <div className="flex items-center gap-3 border-b border-border px-6 py-4">
               <Brain className="h-5 w-5 text-emerald-400" />
@@ -301,7 +300,7 @@ export default function CompanyDetailPage() {
               </div>
             </div>
             <div className="px-6 py-5">
-              <MdContent content={(researchResult.synthesis as string) || ""} />
+              <MdContent content={researchResult.synthesis ?? ""} />
             </div>
           </div>
 
@@ -314,31 +313,28 @@ export default function CompanyDetailPage() {
                   .filter((a) => a !== "orchestrator")
                   .map((agent) => {
                     const cfg = AGENT_CONFIG[agent];
-                    const agentResult = agentResults.find(r => r.agent === agent);
-                    const hasError = !!agentResult?.error;
-                    const displayCfg = cfg || {
-                      label: agent.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+                    const hasErr = !!getAgentResult(agent)?.error;
+                    const displayCfg = cfg ?? {
+                      label: agent.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
                       icon: FileText,
                       color: "text-muted-foreground",
                       bg: "bg-muted/40",
                       border: "border-border",
                     };
-                    const Icon = hasError ? AlertTriangle : displayCfg.icon;
+                    const Icon = hasErr ? AlertTriangle : displayCfg.icon;
                     const isActive = activeAgent === agent;
                     return (
                       <button
                         key={agent}
                         onClick={() => setActiveAgent(agent)}
                         className={`flex shrink-0 items-center gap-2 border-b-2 px-5 py-3.5 text-sm font-medium transition-colors ${isActive
-                            ? hasError
-                              ? "border-orange-400 text-orange-400"
-                              : `${displayCfg.color} border-current`
+                            ? hasErr ? "border-orange-400 text-orange-400" : `${displayCfg.color} border-current`
                             : "border-transparent text-muted-foreground hover:text-foreground"
                           }`}
                       >
                         <Icon className="h-4 w-4" />
                         {displayCfg.label}
-                        {hasError && <span className="ml-1 rounded-full bg-orange-500/20 px-1.5 py-0.5 text-xs text-orange-400">failed</span>}
+                        {hasErr && <span className="ml-1 rounded-full bg-orange-500/20 px-1.5 py-0.5 text-xs text-orange-400">failed</span>}
                       </button>
                     );
                   })}
@@ -348,47 +344,36 @@ export default function CompanyDetailPage() {
               {activeAgent && (() => {
                 const result = getAgentResult(activeAgent);
                 const cfg = AGENT_CONFIG[activeAgent];
-                const hasError = !!(result as Record<string, unknown>)?.error;
-
-                if (!result) return (
-                  <div className="px-6 py-8 text-center text-sm text-muted-foreground">
-                    No output from this agent.
-                  </div>
+                if (!result || !cfg) return (
+                  <div className="px-6 py-8 text-center text-sm text-muted-foreground">No output from this agent.</div>
                 );
-
+                const hasErr = !!result.error;
                 return (
                   <div className="px-6 py-5">
-                    {/* Agent header */}
-                    {cfg && (
-                      <div className={`mb-4 flex items-center gap-3 rounded-lg border px-4 py-3 ${hasError
-                          ? "border-orange-500/30 bg-orange-500/10"
-                          : `${cfg.bg} ${cfg.border}`
-                        }`}>
-                        {hasError
-                          ? <AlertTriangle className="h-5 w-5 shrink-0 text-orange-400" />
-                          : <cfg.icon className={`h-5 w-5 shrink-0 ${cfg.color}`} />
-                        }
-                        <div>
-                          <p className={`text-sm font-semibold ${hasError ? "text-orange-400" : cfg.color}`}>
-                            {cfg.label} {hasError ? "— Partial Failure" : "Output"}
+                    <div className={`mb-4 flex items-center gap-3 rounded-lg border px-4 py-3 ${hasErr ? "border-orange-500/30 bg-orange-500/10" : `${cfg.bg} ${cfg.border}`
+                      }`}>
+                      {hasErr
+                        ? <AlertTriangle className="h-5 w-5 shrink-0 text-orange-400" />
+                        : <cfg.icon className={`h-5 w-5 shrink-0 ${cfg.color}`} />
+                      }
+                      <div>
+                        <p className={`text-sm font-semibold ${hasErr ? "text-orange-400" : cfg.color}`}>
+                          {cfg.label} {hasErr ? "— Partial Failure" : "Output"}
+                        </p>
+                        {activeAgent === "technical_analyst" && result.signal && (
+                          <p className="text-xs text-muted-foreground">
+                            Signal: <span className="font-medium">{result.signal.signal}</span>
+                            {" · "}Confidence: <span className="font-medium">{result.signal.confidence}%</span>
                           </p>
-                          {activeAgent === "technical_analyst" && (result as Record<string, unknown>).signal && (
-                            <p className="text-xs text-muted-foreground">
-                              Signal: <span className="font-medium">{((result as Record<string, unknown>).signal as Record<string, unknown>)?.signal as string || "N/A"}</span>
-                              {" · "}Confidence: <span className="font-medium">{((result as Record<string, unknown>).signal as Record<string, unknown>)?.confidence as number || 0}%</span>
-                            </p>
-                          )}
-                          {hasError && (
-                            <p className="mt-0.5 text-xs text-orange-400/80">
-                              Error: {(result as Record<string, unknown>).error as string}
-                            </p>
-                          )}
-                        </div>
+                        )}
+                        {hasErr && (
+                          <p className="mt-0.5 text-xs text-orange-400/80">Error: {result.error}</p>
+                        )}
                       </div>
-                    )}
-                    {(result.content as string) && (result.content as string) !== `Agent failed: ${(result as Record<string, unknown>).error}` ? (
-                      <MdContent content={result.content as string} />
-                    ) : hasError ? (
+                    </div>
+                    {result.content && result.content !== `Agent failed: ${result.error}` ? (
+                      <MdContent content={result.content} />
+                    ) : hasErr ? (
                       <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-4 text-sm text-orange-300/80">
                         This agent encountered an error and could not produce a report. The Orchestrator Synthesis above incorporates the available data from the other agents.
                       </div>
@@ -405,12 +390,12 @@ export default function CompanyDetailPage() {
       {researchResult?.error && (
         <div className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/5 p-5">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
-          <p className="text-sm text-red-400">{researchResult.error as string}</p>
+          <p className="text-sm text-red-400">{researchResult.error}</p>
         </div>
       )}
 
       {/* ── Stored summary (when no live result) ──────────────────────── */}
-      {hasStoredSummary && !researchResult && (
+      {company.research_summary && !researchResult && (
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center gap-3 border-b border-border px-6 py-4">
             <FileText className="h-5 w-5 text-violet-500" />
@@ -420,21 +405,19 @@ export default function CompanyDetailPage() {
             </div>
           </div>
           <div className="px-6 py-5">
-            <MdContent content={company.research_summary as string} />
+            <MdContent content={company.research_summary} />
           </div>
         </div>
       )}
 
       {/* ── Company description ────────────────────────────────────────── */}
-      {!!company.description && (
+      {company.description && (
         <div className="rounded-xl border border-border bg-card p-6">
           <h2 className="mb-3 flex items-center gap-2 text-base font-semibold">
             <Building2 className="h-4 w-4 text-muted-foreground" />
-            About {(company.name as string) || ticker}
+            About {company.name || ticker}
           </h2>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {company.description as string}
-          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{company.description}</p>
         </div>
       )}
     </div>

@@ -1,79 +1,85 @@
 # Agentic Quant Researcher
 
-> A multi-agent AI research system that reads SEC filings, computes real technical indicators, and synthesizes institutional-quality equity research reports — automatically.
+> A multi-agent, RAG-powered quantitative research system that reads SEC filings, computes deterministic technical indicators, and synthesizes institutional-grade equity research reports — automatically.
+
+![License](https://img.shields.io/badge/license-MIT-blue) ![Python](https://img.shields.io/badge/python-3.11+-green) ![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
 
 ---
 
 ## What It Does
 
-Most retail investors don't have time to read a 200-page 10-K or run a DCF model. This system deploys a pipeline of specialized AI agents that work together as an automated research desk:
+Most retail investors don't have time to read a 200-page 10-K or run a DCF model. This project bridges that gap by deploying a pipeline of specialized AI agents that work together as an automated research desk:
 
-| Agent | What it does |
+| Agent | Role |
 |---|---|
-| **Sector Researcher** | RAG search over SEC 10-K/10-Q filings, extracts risk factors, competitive positioning, and management guidance |
-| **Fundamental Analyst** | Live P/E, ROE, Debt/Equity, profit margins, EPS growth, full income statement + balance sheet parsing |
-| **Technical Analyst** | RSI(14), MACD(12,26,9), Bollinger Bands, SMA/EMA crossovers, ADX, ATR + 2-year backtest (Sharpe, Max Drawdown, Win Rate) |
-| **Orchestrator** | Synthesizes all three into a unified Buy/Hold/Sell recommendation with a confidence score and risk matrix |
+| **Sector Researcher** | Queries SEC 10-K/10-Q filings via RAG vector search, extracts risk factors, management guidance, and competitive positioning |
+| **Fundamental Analyst** | Computes P/E, ROE, Debt/Equity, profit margins, DCF framework, and a 1–10 financial health score from live Yahoo Finance data |
+| **Technical Analyst** | Runs RSI, MACD, Bollinger Bands, SMA crossovers, ATR, and a 2-year SMA backtest (Sharpe, Max Drawdown, Win Rate) |
+| **Orchestrator** | Synthesizes all three agent outputs into a unified Buy/Hold/Sell recommendation with confidence score |
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                  Next.js 14 Frontend                 │
-│     Research Pages · Chat · Strategies · Dashboard  │
-└──────────────────────┬──────────────────────────────┘
-                       │ REST + SSE (streaming chat)
-┌──────────────────────▼──────────────────────────────┐
-│                  FastAPI Backend                      │
-│  Agents · RAG Pipeline · Ingestion · Data APIs      │
-│                                                      │
-│  ┌──────────────┐  ┌──────────────┐                 │
-│  │  yfinance    │  │  SEC EDGAR   │  (data sources) │
-│  │  Polygon.io  │  │  Pinecone    │  (vector store) │
-│  └──────────────┘  └──────────────┘                 │
-│  ┌──────────────┐  ┌──────────────┐                 │
-│  │  SQLite/PG   │  │  fastembed   │  (local embed)  │
-│  └──────────────┘  └──────────────┘                 │
-└─────────────────────────────────────────────────────┘
-                       │
-              ┌────────▼────────┐
-              │  Anthropic API  │  Claude — agent reasoning
-              └─────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                    Next.js 14 Frontend                   │
+│    Dashboard · Research Pages · Chat · Strategies        │
+└──────────────────────┬──────────────────────────────────┘
+                       │ HTTP / WebSocket (SSE streaming)
+┌──────────────────────▼──────────────────────────────────┐
+│                   FastAPI Backend                        │
+│  ┌────────────┐  ┌──────────────┐  ┌──────────────────┐ │
+│  │  Ingestion │  │    Agents    │  │   Chat Engine    │ │
+│  │  Pipeline  │  │ Orchestrator │  │ (streaming SSE)  │ │
+│  └─────┬──────┘  └─────┬────────┘  └──────────────────┘ │
+│        │               │                                  │
+│  ┌─────▼──────┐  ┌─────▼──────┐                          │
+│  │ SEC EDGAR  │  │  Pinecone  │  ← vector search (RAG)  │
+│  │  yfinance  │  │  SQLite /  │                          │
+│  │  Polygon   │  │ PostgreSQL │  ← companies, history   │
+│  └────────────┘  └────────────┘                          │
+└─────────────────────────────────────────────────────────┘
+              ┌────────────────────┐
+              │  Anthropic Claude  │  agent reasoning
+              └────────────────────┘
+              ┌────────────────────┐
+              │  fastembed (local) │  384-dim embeddings, free
+              └────────────────────┘
 ```
 
 **Key design decisions:**
-- **Local embeddings** via `fastembed` (BAAI/bge-small-en-v1.5, 384-dim) — no embedding API cost, no rate limits
-- **yfinance ≥ 1.2.0** — earlier versions (0.2.x) are broken due to a Yahoo Finance API format change; `curl_cffi` is required
-- **Namespace-per-ticker** Pinecone isolation — fast, focused vector retrieval per company
-- **Async-first FastAPI** — `AsyncAnthropic` client so 30–60s LLM calls never block the event loop
-- **Deterministic math** — all indicators and backtests use the `ta` library, not LLM inference
+- **Local embeddings** via `fastembed` (BAAI/bge-small-en-v1.5, 384-dim) — no Voyage AI bill, no rate limits
+- **Namespace-per-ticker** Pinecone isolation for fast, focused vector retrieval
+- **Async-first** — `AsyncAnthropic` so the FastAPI loop is never blocked during LLM calls
+- **Deterministic math** — indicators and backtests use the `ta` library, never inferred by the LLM
 
 ---
 
 ## Prerequisites
 
-| Requirement | Notes |
-|---|---|
-| **Python 3.11+** | [python.org](https://python.org) |
-| **Node.js 18+** | [nodejs.org](https://nodejs.org) |
-| **Anthropic API key** | [console.anthropic.com](https://console.anthropic.com) — Claude powers all agents |
-| **Pinecone API key** | [app.pinecone.io](https://app.pinecone.io) — free Serverless tier is sufficient |
-| **Polygon.io key** | Optional — Yahoo Finance is used as default fallback |
+| Dependency | Version | Where to get it |
+|---|---|---|
+| Python | 3.11+ | [python.org](https://python.org) |
+| Node.js | 18+ | [nodejs.org](https://nodejs.org) |
+| Anthropic API Key | — | [console.anthropic.com](https://console.anthropic.com) |
+| Pinecone API Key | — | [app.pinecone.io](https://app.pinecone.io) |
+| Polygon API Key | optional | [polygon.io](https://polygon.io) — Yahoo Finance used as fallback |
+
+> ⚠️ **yfinance note:** `yfinance==0.2.50` is broken (Yahoo changed their API format). The `requirements.txt` pins `>=0.2.52`. Always install from `requirements.txt`, not manually.
 
 ---
 
-## Setup & Running Locally
+## Quick Start
 
-### 1 — Clone the repo
+### 1. Clone
 
 ```bash
-git clone https://github.com/your-username/agentic-quant-researcher.git
+git clone https://github.com/your-org/agentic-quant-researcher.git
 cd agentic-quant-researcher
 ```
 
-### 2 — Backend
+### 2. Backend
 
 ```bash
 cd backend
@@ -81,83 +87,84 @@ cd backend
 # Create virtual environment
 python -m venv .venv
 
-# Activate — Windows
-.venv\Scripts\activate
-
-# Activate — macOS / Linux
-source .venv/bin/activate
+# Activate
+.venv\Scripts\activate        # Windows PowerShell
+source .venv/bin/activate     # macOS / Linux
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment
+# Copy and fill in environment variables
 cp .env.example .env
-```
+# Open .env and set ANTHROPIC_API_KEY, PINECONE_API_KEY, etc.
 
-Open `.env` and fill in at minimum:
-- `ANTHROPIC_API_KEY` — from [console.anthropic.com](https://console.anthropic.com)
-- `PINECONE_API_KEY` — from [app.pinecone.io](https://app.pinecone.io)
-- `PINECONE_INDEX_NAME` — any name, e.g. `quant-researcher` (created automatically on first run)
-- `SEC_EDGAR_USER_AGENT` — required by EDGAR: `"Your Name your@email.com"`
-
-```bash
-# Start the API server
+# Run the API server
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-- API: **http://localhost:8000**
-- Swagger docs: **http://localhost:8000/docs**
+API is live at **http://localhost:8000** · Docs at **http://localhost:8000/docs**
 
-### 3 — Frontend
+### 3. Frontend
 
 ```bash
 cd frontend
 
+# Install dependencies
 npm install
 
+# Copy environment file (default value works for local dev)
 cp .env.example .env.local
-# NEXT_PUBLIC_API_URL is already set to http://localhost:8000
 
+# Run the dev server
 npm run dev
 ```
 
-App: **http://localhost:3000**
+App is live at **http://localhost:3000**
 
 ---
 
-## Usage Guide
+## Usage
 
-### Step 1 — Ingest a company
+### Ingest a Company
+`Research` tab → search a ticker → click **Ingest**
 
-Go to **Research** → search for a ticker → click **Ingest**. This:
-1. Fetches SEC 10-K / 10-Q filings from EDGAR
-2. Downloads OHLCV price history and financial ratios from Yahoo Finance
-3. Chunks and embeds documents → stores in Pinecone (namespace = ticker)
-4. Saves fundamentals to SQLite
+This downloads SEC 10-K/10-Q filings, fetches OHLCV + ratios from Yahoo Finance, embeds and stores everything in Pinecone, and saves fundamentals to the local database.
 
-Ingestion takes ~30–90 seconds per company.
+### Run Full Research
+On any company page → **Run Research** (~45–90 seconds)
 
-### Step 2 — Run research
+All three agents run sequentially, then the Orchestrator synthesizes a report with price targets, indicator readings, risk factor matrix, and backtested strategy performance.
 
-On any company page, click **Run Research**. The three agents run sequentially (~45–90 seconds total), then the Orchestrator synthesises a final report with:
-
-- 🎯 Price targets (bull / base / bear)
-- 📊 All computed indicator readings with signals
-- 💰 Full valuation table (P/E, EV/EBITDA, DCF context, peer comparison)
-- ⚠️ Risk factor matrix with severity ratings
-- 📈 2-year backtest (SMA crossover strategy) with Sharpe ratio and max drawdown
-
-### Step 3 — Chat interface
-
-Use the **Chat** tab for targeted queries:
-
+### Chat Interface
+Use the **Chat** tab:
 ```
-Research AAPL — full analysis
-/technical TSLA
-/fundamental MSFT
-Compare NVDA vs AMD
-What are the key risks for ACN?
+Research AAPL — full analysis    → all three agents
+/technical TSLA                  → Technical Analyst only
+/fundamental MSFT                → Fundamental Analyst only
+Compare AAPL vs MSFT             → side-by-side comparison
 ```
+
+---
+
+## Environment Variables
+
+### Backend (`.env`)
+
+| Variable | Required | Description |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | ✅ | Claude API key for all agent reasoning |
+| `PINECONE_API_KEY` | ✅ | Vector store for SEC filing embeddings |
+| `PINECONE_INDEX_NAME` | ✅ | Index name (e.g. `quant-researcher-local`) |
+| `DATABASE_URL` | ✅ | `sqlite+aiosqlite:///quant_researcher.db` for local dev |
+| `SEC_EDGAR_USER_AGENT` | ✅ | `"Your Name your@email.com"` — required by EDGAR fair-use policy |
+| `POLYGON_API_KEY` | ⬜ | Optional premium market data; Yahoo Finance is the fallback |
+| `ANTHROPIC_MODEL` | ⬜ | Claude model (default: `claude-sonnet-4-5`) |
+
+### Frontend (`.env.local`)
+
+| Variable | Required | Description |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | ✅ | Backend URL (default: `http://localhost:8000`) |
 
 ---
 
@@ -165,83 +172,52 @@ What are the key risks for ACN?
 
 ```
 ├── backend/
-│   ├── api/
-│   │   └── routes/              # FastAPI endpoints (research, companies, chat, etc.)
+│   ├── api/routes/          # FastAPI route handlers (companies, research, chat, monitoring)
 │   ├── config/
-│   │   ├── prompts/             # Agent system prompts (markdown, easy to tune)
-│   │   └── settings.py          # Pydantic settings (reads .env)
+│   │   ├── prompts/         # Agent system prompts (markdown)
+│   │   └── settings.py      # Pydantic settings — reads .env
 │   ├── src/
-│   │   ├── agents/
-│   │   │   ├── orchestrator.py  # Master agent — plans, delegates, synthesizes
-│   │   │   ├── sector_researcher.py
-│   │   │   ├── fundamental_analyst.py
-│   │   │   ├── technical_analyst.py
-│   │   │   └── tools/           # AnalysisTools, DataTools, SearchTools
-│   │   ├── database/            # SQLAlchemy async models + session
-│   │   ├── ingestion/           # SEC EDGAR fetcher, yfinance client, market data
-│   │   └── knowledge_base/      # fastembed embeddings, Pinecone vector store, chunking
-│   ├── workers/                 # Background ingestion worker (arq)
-│   ├── main.py                  # FastAPI app entrypoint
+│   │   ├── agents/          # Orchestrator + 3 specialist agents
+│   │   │   └── tools/       # AnalysisTools (indicators), DataTools, SearchTools
+│   │   ├── database/        # SQLAlchemy async models + session
+│   │   ├── ingestion/       # SEC EDGAR fetcher, yfinance/Polygon market data client
+│   │   └── knowledge_base/  # fastembed embeddings + Pinecone vector store
+│   ├── main.py              # FastAPI app entrypoint
 │   ├── requirements.txt
-│   ├── .env.example             # ← copy this to .env
-│   └── .env                     # ← git-ignored, never committed
+│   ├── .env.example
+│   └── .env                 # ← never committed (gitignored)
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── app/                 # Next.js App Router pages
-│   │   ├── components/          # Chat, layout, charts, research cards
-│   │   ├── hooks/               # useChat (SSE streaming)
-│   │   └── lib/                 # API client, formatters
-│   ├── .env.example             # ← copy this to .env.local
-│   └── package.json
+│   │   ├── app/             # Next.js App Router pages
+│   │   ├── components/      # UI components (chat, layout, charts)
+│   │   ├── hooks/           # useChat (WebSocket/SSE streaming)
+│   │   └── lib/             # API client, utils
+│   ├── .env.example
+│   └── .env.local           # ← never committed (gitignored)
 │
-└── paper/                       # Academic research paper (LaTeX + HTML)
-```
-
----
-
-## Environment Variables
-
-### Backend — `backend/.env`
-
-| Variable | Required | Description |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | ✅ | Claude API key — [console.anthropic.com](https://console.anthropic.com) |
-| `PINECONE_API_KEY` | ✅ | Vector store — [app.pinecone.io](https://app.pinecone.io) |
-| `PINECONE_ENVIRONMENT` | ✅ | e.g. `us-east-1` |
-| `PINECONE_INDEX_NAME` | ✅ | Index name (created automatically, e.g. `quant-researcher`) |
-| `DATABASE_URL` | ✅ | `sqlite+aiosqlite:///quant_researcher.db` for local; PostgreSQL URL for production |
-| `SEC_EDGAR_USER_AGENT` | ✅ | `"Your Name your@email.com"` — required by EDGAR fair-use policy |
-| `ANTHROPIC_MODEL` | ⬜ | Default: `claude-sonnet-4-5` |
-| `POLYGON_API_KEY` | ⬜ | Optional premium OHLCV data. Yahoo Finance is used if this is blank. |
-
-### Frontend — `frontend/.env.local`
-
-| Variable | Required | Description |
-|---|---|---|
-| `NEXT_PUBLIC_API_URL` | ✅ | Backend URL — default: `http://localhost:8000` |
-
----
-
-## Important: yfinance Version
-
-**Do not use yfinance `0.2.x`** — Yahoo Finance changed their API format and all `0.2.x` versions return empty data silently. This project requires **yfinance `>=1.2.0`** (already pinned in `requirements.txt`), which uses `curl_cffi` for proper API access.
-
-```bash
-# Verify you have the correct version
-pip show yfinance  # should be 1.2.0+
+└── paper/                   # Academic research paper (LaTeX + HTML)
 ```
 
 ---
 
 ## Production Deployment
 
-| Service | Recommendation |
-|---|---|
-| **Backend** | [Railway](https://railway.app) or any Docker host. Set `DATABASE_URL` to a PostgreSQL URL. |
-| **Frontend** | [Vercel](https://vercel.com). Set `NEXT_PUBLIC_API_URL` to your Railway backend URL. |
-| **Database** | Railway PostgreSQL addon, Supabase, or Neon. |
-| **Vector DB** | Pinecone Serverless (free tier) — no changes needed. |
+| Layer | Platform | Notes |
+|---|---|---|
+| Backend | [Railway](https://railway.app) | Set `DATABASE_URL` to a PostgreSQL connection string |
+| Frontend | [Vercel](https://vercel.com) | Set `NEXT_PUBLIC_API_URL` to your Railway URL |
+| Database | Railway PostgreSQL addon | Or any managed Postgres provider |
+| Vector DB | Pinecone Serverless | Index auto-created on first run; dimension = 384 |
+
+---
+
+## Known Issues / Gotchas
+
+- **yfinance ≥ 0.2.52 required** — older versions fail silently with empty DataFrames due to Yahoo API changes
+- **Pinecone dimension mismatch** — if you previously used a 1024-dim index (Voyage AI), the app will automatically delete and recreate it at 384-dim on startup
+- **Windows + Uvicorn** — run single-worker mode (`uvicorn main:app` without `--workers N`); multi-worker mode is unstable on Windows due to multiprocessing fork issues
+- **SEC EDGAR rate limits** — EDGAR allows ~10 req/s; the ingestion pipeline respects this but large batches may be slow
 
 ---
 
@@ -259,4 +235,4 @@ pip show yfinance  # should be 1.2.0+
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE) for details.
