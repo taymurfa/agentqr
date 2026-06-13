@@ -5,8 +5,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from anthropic import Anthropic
-
+from openai import OpenAI
 from config.settings import get_settings
 from src.database.models import Strategy
 
@@ -17,7 +16,7 @@ class StrategySynthesizer:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.settings = get_settings()
-        self.client = Anthropic(api_key=self.settings.anthropic_api_key)
+        self.client = OpenAI(api_key=self.settings.openai_api_key)
 
     async def synthesize(
         self,
@@ -45,14 +44,18 @@ Provide:
 
 Output as JSON with these fields."""
 
-        response = self.client.messages.create(
-            model=self.settings.anthropic_model,
+        response = self.client.chat.completions.create(
+            model=self.settings.openai_model,
             max_tokens=4096,
-            system="You are a quantitative strategy synthesizer. Output valid JSON.",
-            messages=[{"role": "user", "content": f"{prompt}\n\n{context}"}],
+            messages=[
+                {"role": "system", "content": "You are a quantitative strategy synthesizer. Output valid JSON."},
+                {"role": "user", "content": f"{prompt}\n\n{context}"}
+            ],
+            response_format={"type": "json_object"}
         )
 
-        content = response.content[0].text
+        content = response.choices[0].message.content or "{}"
+
 
         try:
             strategy_data = json.loads(content)

@@ -1,8 +1,7 @@
 "use client";
 
 import { ChatMessage } from "@/types";
-import { cn } from "@/lib/utils";
-import { User, Bot } from "lucide-react";
+import { agentTag } from "@/lib/agents";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -12,49 +11,57 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  const time = message.created_at
+    ? new Date(message.created_at).toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "";
 
   return (
-    <div className={cn("flex gap-3", isUser && "flex-row-reverse")}>
-      <div
-        className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-          isUser ? "bg-primary text-primary-foreground" : "bg-muted"
-        )}
-      >
-        {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+    <div className="flex gap-3">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-border bg-background font-mono text-[9px] font-semibold uppercase tracking-widest text-foreground">
+        {isUser ? "YOU" : "AGT"}
       </div>
-
-      <div
-        className={cn(
-          "max-w-[90%] overflow-x-auto rounded-2xl px-5 py-4",
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted/50 border border-border/50"
-        )}
-      >
-        {isUser ? (
-          <p className="text-sm">{message.content}</p>
-        ) : (
-          <div className="prose prose-sm prose-slate dark:prose-invert max-w-none 
-                          prose-th:border prose-th:border-border prose-th:bg-muted/50 prose-th:p-2 
-                          prose-td:border prose-td:border-border prose-td:p-2 
-                          prose-table:border-collapse prose-table:w-full">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
-          </div>
-        )}
-
-        {message.agents_used && message.agents_used.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {message.agents_used.map((agent) => (
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="text-foreground">{isUser ? "you" : "agent"}</span>
+          {time && <span>{time}</span>}
+          {!isUser &&
+            message.agents_used?.map((a) => (
               <span
-                key={agent}
-                className="inline-flex items-center rounded-full bg-background/50 px-2 py-0.5 text-xs"
+                key={a}
+                className="rounded border border-border px-1 text-[9px] text-muted-foreground"
               >
-                {agent.replace(/_/g, " ")}
+                {agentTag(a)}
               </span>
             ))}
-          </div>
-        )}
+        </div>
+
+        <div className="mt-1 font-mono text-xs leading-relaxed text-foreground">
+          {isUser ? (
+            <p className="whitespace-pre-wrap">{message.content}</p>
+          ) : (
+            <div
+              className="prose prose-invert max-w-none
+                         prose-p:my-1.5 prose-p:text-xs prose-p:leading-relaxed
+                         prose-headings:font-semibold prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-foreground
+                         prose-h1:text-[11px] prose-h2:text-[11px] prose-h3:text-[10px]
+                         prose-strong:text-foreground
+                         prose-a:text-foreground prose-a:underline
+                         prose-code:rounded prose-code:border prose-code:border-border prose-code:bg-card prose-code:px-1 prose-code:py-0.5 prose-code:text-[11px] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none
+                         prose-pre:my-2 prose-pre:rounded prose-pre:border prose-pre:border-border prose-pre:bg-card prose-pre:p-3 prose-pre:text-[11px]
+                         prose-ul:my-1.5 prose-ul:pl-4 prose-li:my-0.5 prose-li:text-xs
+                         prose-ol:my-1.5 prose-ol:pl-4
+                         prose-table:my-2 prose-table:border-collapse prose-table:text-[11px]
+                         prose-th:border prose-th:border-border prose-th:bg-card prose-th:px-2 prose-th:py-1 prose-th:text-left prose-th:font-semibold prose-th:uppercase prose-th:tracking-widest
+                         prose-td:border prose-td:border-border prose-td:px-2 prose-td:py-1
+                         prose-hr:my-3 prose-hr:border-border"
+            >
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

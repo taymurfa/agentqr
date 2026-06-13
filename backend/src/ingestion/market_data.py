@@ -113,6 +113,17 @@ class MarketDataClient:
 
         if self.poly_key:
             try:
+                interval_map = {
+                    "1m": (1, "minute"),
+                    "5m": (5, "minute"),
+                    "15m": (15, "minute"),
+                    "30m": (30, "minute"),
+                    "60m": (1, "hour"),
+                    "1h": (1, "hour"),
+                    "1d": (1, "day"),
+                }
+                multiplier, timespan = interval_map.get(interval, (1, "day"))
+
                 # Calculate dates for Polygon if not provided
                 if not end:
                     end_date = datetime.now()
@@ -121,7 +132,16 @@ class MarketDataClient:
                 
                 if not start:
                     # Approximation of period
-                    days = 730 if period == "2y" else (365 if period == "1y" else (30 if period == "1mo" else 365))
+                    period_days = {
+                        "1d": 1,
+                        "5d": 5,
+                        "1mo": 30,
+                        "3mo": 90,
+                        "6mo": 180,
+                        "1y": 365,
+                        "2y": 730,
+                    }
+                    days = period_days.get(period, 365)
                     start_date = end_date - timedelta(days=days)
                 else:
                     start_date = datetime.strptime(start, "%Y-%m-%d")
@@ -130,10 +150,13 @@ class MarketDataClient:
                 with RESTClient(self.poly_key) as client:
                     aggs = client.get_aggs(
                         ticker,
-                        1,
-                        "day",
+                        multiplier,
+                        timespan,
                         start_date.strftime("%Y-%m-%d"),
                         end_date.strftime("%Y-%m-%d"),
+                        adjusted=True,
+                        sort="asc",
+                        limit=5000,
                     )
                     if aggs:
                         df = pd.DataFrame(aggs)

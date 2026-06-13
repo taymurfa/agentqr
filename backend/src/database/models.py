@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import (
     Column, String, Text, Float, Integer, DateTime, JSON,
-    ForeignKey, Enum as SAEnum, Index, UUID,
+    ForeignKey, Enum as SAEnum, Index, UUID, Boolean,
 )
 from sqlalchemy.orm import relationship
 
@@ -159,3 +159,51 @@ class Message(Base):
     session = relationship("ChatSession", back_populates="messages")
 
     __table_args__ = (Index("ix_messages_session_created", "session_id", "created_at"),)
+
+
+class TradingAccount(Base):
+    __tablename__ = "trading_accounts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=gen_uuid)
+    cash = Column(Float, nullable=False, default=100000.0)
+    buying_power = Column(Float, nullable=False, default=100000.0)
+    equity = Column(Float, nullable=False, default=100000.0)
+    initial_balance = Column(Float, nullable=False, default=100000.0)
+    is_live = Column(Boolean, default=False)
+    circuit_breaker_tripped = Column(Boolean, default=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class TradeOrder(Base):
+    __tablename__ = "trade_orders"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=gen_uuid)
+    strategy_id = Column(UUID(as_uuid=True), ForeignKey("strategies.id"), nullable=True)
+    ticker = Column(String(10), nullable=False, index=True)
+    side = Column(String(10), nullable=False)  # BUY, SELL
+    qty = Column(Float, nullable=False)
+    order_type = Column(String(20), nullable=False)  # MARKET, LIMIT
+    limit_price = Column(Float, nullable=True)
+    status = Column(String(20), nullable=False)  # PENDING, FILLED, CANCELED, REJECTED, DRY_RUN
+    filled_qty = Column(Float, default=0.0)
+    avg_fill_price = Column(Float, nullable=True)
+    broker_order_id = Column(String(100), unique=True, nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+    agent_rationale = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class TradePosition(Base):
+    __tablename__ = "trade_positions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=gen_uuid)
+    ticker = Column(String(10), unique=True, nullable=False, index=True)
+    qty = Column(Float, nullable=False)
+    avg_entry_price = Column(Float, nullable=False)
+    current_price = Column(Float, nullable=False)
+    market_value = Column(Float, nullable=False)
+    unrealized_pnl = Column(Float, nullable=False)
+    unrealized_pnl_pct = Column(Float, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+

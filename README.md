@@ -135,6 +135,24 @@ On any company page → **Run Research** (~45–90 seconds)
 
 All three agents run sequentially, then the Orchestrator synthesizes a report with price targets, indicator readings, risk factor matrix, and backtested strategy performance.
 
+### Agentic Strategy Pipeline (Terminal command bar)
+
+From the **Terminal** tab, type a free-text command into the top command bar:
+
+```
+Research a momentum strategy for AAPL, MSFT, NVDA, and TSLA over the last 2 years.
+```
+
+The orchestrator parses the command, loads OHLCV via the existing yfinance/Polygon client, generates ranked signals (momentum / mean reversion / volatility breakout), runs a daily-rebalanced long-top-N backtest with transaction cost, performs risk checks, persists the strategy, and emits simulated paper-trade orders. Each step is streamed into the Agent Activity feed.
+
+Endpoints:
+- `POST /api/command` `{ command }` → `{ job_id, status }`
+- `GET  /api/command/{job_id}` → live job status + strategy id + metrics
+- `GET  /api/agent-events?limit=30[&job_id=…]` → activity feed rows
+- `GET  /api/strategies/` → all persisted strategies (incl. equity curves)
+
+Paper-trade orders are dry-run by default (`TRADING_DRY_RUN=true`) and are skipped entirely when the kill switch (`TradingAccount.circuit_breaker_tripped`) is set. Use the `/api/trading/kill-switch` and `/api/trading/toggle-dry-run` endpoints to control this.
+
 ### Chat Interface
 Use the **Chat** tab:
 ```

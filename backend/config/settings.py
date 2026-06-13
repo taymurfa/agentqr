@@ -8,14 +8,30 @@ class Settings(BaseSettings):
     app_port: int = 8000
 
     # CORS
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001"
 
     # Database
     database_url: str = "postgresql+asyncpg://user:password@localhost:5432/quant_researcher"
 
-    # Anthropic (Claude)
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4"
+    # OpenAI (ChatGPT)
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o"
+
+    # Trading Configurations
+    trading_mode: str = "mock"  # mock | alpaca
+    trading_dry_run: bool = True  # Safety default
+    trading_auto_execute: bool = False  # Set to True to automate research-to-trading
+    
+    # Alpaca Credentials
+    alpaca_api_key_id: str = ""
+    alpaca_secret_key: str = ""
+    alpaca_base_url: str = "https://paper-api.alpaca.markets"
+    
+    # Circuit Breakers
+    max_portfolio_drawdown_pct: float = 5.0  # Max drawdown on account
+    max_daily_loss_pct: float = 2.0  # Max daily loss
+    max_position_size_pct: float = 10.0  # Max size per ticker
+    max_sector_exposure_pct: float = 30.0  # Max exposure per sector
 
     # Embeddings (Local Fastembed)
     voyage_api_key: str = ""

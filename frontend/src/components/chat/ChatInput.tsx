@@ -1,25 +1,25 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Slash } from "lucide-react";
+import { Send } from "lucide-react";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
   isLoading: boolean;
 }
 
+const COMMANDS = [
+  { cmd: "/research", desc: "Research a ticker", example: "/research AAPL" },
+  { cmd: "/compare", desc: "Compare tickers", example: "/compare AAPL,GOOGL,MSFT" },
+  { cmd: "/technical", desc: "Technical analysis", example: "/technical NVDA" },
+  { cmd: "/fundamental", desc: "Fundamental analysis", example: "/fundamental TSLA" },
+  { cmd: "/strategy", desc: "Generate strategy", example: "/strategy tech-sector" },
+];
+
 export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [showCommands, setShowCommands] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  const commands = [
-    { cmd: "/research", desc: "Research a ticker", example: "/research AAPL" },
-    { cmd: "/compare", desc: "Compare tickers", example: "/compare AAPL,GOOGL,MSFT" },
-    { cmd: "/technical", desc: "Technical analysis", example: "/technical NVDA" },
-    { cmd: "/fundamental", desc: "Fundamental analysis", example: "/fundamental TSLA" },
-    { cmd: "/strategy", desc: "Generate strategy", example: "/strategy tech-sector" },
-  ];
 
   useEffect(() => {
     setShowCommands(input === "/");
@@ -46,42 +46,43 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   };
 
   return (
-    <div className="relative border-t border-border p-4">
+    <div className="relative border-t border-border p-3">
       {showCommands && (
-        <div className="absolute bottom-full left-4 right-4 mb-2 rounded-lg border border-border bg-card p-2 shadow-lg">
-          <p className="mb-2 px-2 text-xs font-medium text-muted-foreground">COMMANDS</p>
-          {commands.map((c) => (
+        <div className="absolute bottom-full left-3 right-3 mb-2 rounded border border-border bg-card shadow-lg">
+          <p className="border-b border-border px-3 py-1.5 font-mono text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Commands
+          </p>
+          {COMMANDS.map((c) => (
             <button
               key={c.cmd}
               onClick={() => insertCommand(c.cmd)}
-              className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
+              className="flex w-full items-center gap-3 border-b border-border/70 px-3 py-1.5 text-left font-mono text-[11px] transition-colors hover:bg-accent/60 last:border-b-0"
             >
-              <Slash className="h-3 w-3 text-muted-foreground" />
-              <span className="font-medium">{c.cmd}</span>
+              <span className="font-semibold text-foreground">{c.cmd}</span>
               <span className="text-muted-foreground">{c.desc}</span>
-              <span className="ml-auto text-xs text-muted-foreground">{c.example}</span>
+              <span className="ml-auto text-[10px] text-muted-foreground">{c.example}</span>
             </button>
           ))}
         </div>
       )}
 
-      <div className="flex items-end gap-2 rounded-xl border border-border bg-background p-2">
+      <div className="flex items-end gap-2 rounded border border-border bg-background p-2">
         <textarea
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about a company, sector, or strategy... (type / for commands)"
-          className="max-h-32 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-1 text-sm outline-none placeholder:text-muted-foreground"
+          placeholder="Ask the agent — type / for commands"
+          className="max-h-32 min-h-[28px] flex-1 resize-none bg-transparent px-1 py-0.5 font-mono text-xs text-foreground outline-none placeholder:text-muted-foreground"
           rows={1}
           disabled={isLoading}
         />
         <button
           onClick={handleSubmit}
           disabled={!input.trim() || isLoading}
-          className="rounded-lg bg-primary p-2 text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          className="flex items-center gap-1 rounded border border-border bg-background px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:hover:bg-background disabled:hover:text-muted-foreground"
         >
-          <Send className="h-4 w-4" />
+          Send <Send className="h-3 w-3" />
         </button>
       </div>
     </div>

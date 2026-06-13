@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Query
+import uuid
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
@@ -41,12 +42,16 @@ async def list_strategies(
 
 @router.get("/{strategy_id}")
 async def get_strategy(strategy_id: str, db: AsyncSession = Depends(get_db)):
-    stmt = select(Strategy).where(Strategy.id == strategy_id)
+    try:
+        sid = uuid.UUID(strategy_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid strategy id")
+    stmt = select(Strategy).where(Strategy.id == sid)
     result = await db.execute(stmt)
     s = result.scalar_one_or_none()
 
     if not s:
-        return {"error": "Strategy not found"}
+        raise HTTPException(status_code=404, detail="Strategy not found")
 
     return {
         "id": str(s.id),

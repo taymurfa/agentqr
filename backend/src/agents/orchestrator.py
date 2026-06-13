@@ -14,6 +14,7 @@ from src.agents.base_agent import BaseAgent
 from src.agents.sector_researcher import SectorResearchAgent
 from src.agents.technical_analyst import TechnicalAnalysisAgent
 from src.agents.fundamental_analyst import FundamentalAnalysisAgent
+from src.agents.trading_agent import TradingAgent
 from src.database.models import Company, Strategy
 
 
@@ -25,6 +26,7 @@ class OrchestratorAgent(BaseAgent):
         self.sector_agent = SectorResearchAgent(db)
         self.tech_agent = TechnicalAnalysisAgent(db)
         self.fundamental_agent = FundamentalAnalysisAgent(db)
+        self.trading_agent = TradingAgent(db)
 
     async def run(self, query: str, **kwargs) -> dict:
         """Route a query to the appropriate agents and synthesize results."""
@@ -157,6 +159,7 @@ class OrchestratorAgent(BaseAgent):
             "sector_researcher": self.sector_agent,
             "technical_analyst": self.tech_agent,
             "fundamental_analyst": self.fundamental_agent,
+            "trading_agent": self.trading_agent,
         }
         agent = agent_map.get(agent_name)
         if not agent:

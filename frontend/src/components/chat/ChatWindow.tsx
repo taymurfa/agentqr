@@ -3,13 +3,19 @@
 import { useEffect, useRef } from "react";
 import { ChatMessage } from "@/types";
 import { MessageBubble } from "./MessageBubble";
-import { Bot, Loader2 } from "lucide-react";
 
 interface ChatWindowProps {
   messages: ChatMessage[];
   streamingContent: string;
   isLoading: boolean;
 }
+
+const EXAMPLES = [
+  "Research AAPL — full analysis",
+  "Compare NVDA, AMD, INTC",
+  "/technical TSLA",
+  "/strategy technology sector",
+];
 
 export function ChatWindow({ messages, streamingContent, isLoading }: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -20,24 +26,20 @@ export function ChatWindow({ messages, streamingContent, isLoading }: ChatWindow
 
   if (messages.length === 0 && !isLoading) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-        <Bot className="h-16 w-16 text-muted-foreground/40" />
-        <div>
-          <h2 className="text-xl font-semibold">Start a Research Conversation</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Ask about any company, sector, or trading strategy
+      <div className="flex flex-1 flex-col items-center justify-center gap-5 p-6">
+        <div className="text-center">
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Strategy Assistant
+          </p>
+          <p className="mt-2 font-mono text-xs text-foreground">
+            Describe what you want to research, backtest, or build.
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {[
-            "Research AAPL — full analysis",
-            "Compare NVDA, AMD, INTC",
-            "/technical TSLA",
-            "/strategy technology sector",
-          ].map((example) => (
+        <div className="flex w-full max-w-sm flex-col gap-1">
+          {EXAMPLES.map((example) => (
             <div
               key={example}
-              className="cursor-pointer rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="cursor-pointer rounded border border-border bg-background px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               {example}
             </div>
@@ -65,9 +67,9 @@ export function ChatWindow({ messages, streamingContent, isLoading }: ChatWindow
       )}
 
       {isLoading && !streamingContent && (
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-sm">Agents are researching...</span>
+        <div className="flex items-center gap-2 px-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="flex h-1.5 w-1.5 animate-pulse rounded-full bg-foreground" />
+          agents working…
         </div>
       )}
 

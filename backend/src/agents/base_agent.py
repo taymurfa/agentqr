@@ -6,7 +6,7 @@ from typing import Optional, AsyncIterator
 from pathlib import Path
 from abc import ABC, abstractmethod
 
-from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.settings import get_settings
@@ -22,7 +22,7 @@ class BaseAgent(ABC):
         self.settings = get_settings()
         self.db = db
         self.agent_name = agent_name
-        self.client = AsyncAnthropic(api_key=self.settings.anthropic_api_key)
+        self.client = AsyncOpenAI(api_key=self.settings.openai_api_key)
         self.vector_store = VectorStore()
         self.embedder = EmbeddingGenerator()
         self.system_prompt = self._load_system_prompt()
@@ -102,26 +102,29 @@ class BaseAgent(ABC):
         extra_system: str = "",
         max_tokens: int = 4096,
     ) -> str:
-        """Call Claude with context and return the response."""
+        """Call OpenAI with context and return the response."""
         system = self.system_prompt
         if extra_system:
             system += f"\n\n{extra_system}"
         if context:
             system += f"\n\n## Retrieved Research Context\n\n{context}"
 
-        messages = [*self.conversation_history, {"role": "user", "content": user_message}]
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.extend(self.conversation_history)
+        messages.append({"role": "user", "content": user_message})
 
         start = time.time()
-        response = await self.client.messages.create(
-            model=self.settings.anthropic_model,
+        response = await self.client.chat.completions.create(
+            model=self.settings.openai_model,
             max_tokens=max_tokens,
-            system=system,
             messages=messages,
         )
         latency = int((time.time() - start) * 1000)
 
-        content = response.content[0].text
-        tokens = response.usage.input_tokens + response.usage.output_tokens
+        content = response.choices[0].message.content or ""
+        tokens = response.usage.total_tokens if response.usage else 0
 
         self.conversation_history.append({"role": "user", "content": user_message})
         self.conversation_history.append({"role": "assistant", "content": content})
@@ -138,25 +141,31 @@ class BaseAgent(ABC):
         extra_system: str = "",
         max_tokens: int = 4096,
     ) -> AsyncIterator[str]:
-        """Stream Claude response token by token."""
+        """Stream OpenAI response token by token."""
         system = self.system_prompt
         if extra_system:
             system += f"\n\n{extra_system}"
         if context:
             system += f"\n\n## Retrieved Research Context\n\n{context}"
 
-        messages = [*self.conversation_history, {"role": "user", "content": user_message}]
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.extend(self.conversation_history)
+        messages.append({"role": "user", "content": user_message})
 
-        async with self.client.messages.stream(
-            model=self.settings.anthropic_model,
+        full_response = ""
+        stream = await self.client.chat.completions.create(
+            model=self.settings.openai_model,
             max_tokens=max_tokens,
-            system=system,
             messages=messages,
-        ) as stream:
-            full_response = ""
-            async for text in stream.text_stream:
-                full_response += text
-                yield text
+            stream=True,
+        )
+        async for chunk in stream:
+            content = chunk.choices[0].delta.content
+            if content:
+                full_response += content
+                yield content
 
         self.conversation_history.append({"role": "user", "content": user_message})
         self.conversation_history.append({"role": "assistant", "content": full_response})
