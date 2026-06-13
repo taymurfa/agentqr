@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 import uuid
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from src.database.connection import Base
@@ -7,7 +8,7 @@ from src.strategy.broker_client import MockBrokerClient
 from src.agents.trading_agent import TradingAgent
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def db_session():
     """Setup in-memory SQLite database for testing."""
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
