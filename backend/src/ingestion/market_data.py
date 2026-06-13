@@ -44,7 +44,7 @@ class MarketDataClient:
 
         # Try yfinance first — it has proper GICS sector/industry names
         try:
-            stock = yf.Ticker(ticker, session=self.session)
+            stock = yf.Ticker(ticker)
             info = stock.info or {}
             if info.get("shortName") or info.get("longName"):
                 result = {
@@ -147,7 +147,8 @@ class MarketDataClient:
                     start_date = datetime.strptime(start, "%Y-%m-%d")
 
                 from polygon import RESTClient
-                with RESTClient(self.poly_key) as client:
+                client = RESTClient(self.poly_key)
+                try:
                     aggs = client.get_aggs(
                         ticker,
                         multiplier,
@@ -171,6 +172,13 @@ class MarketDataClient:
                             'vwap': 'Adj Close'
                         })
                         return df[['Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close']]
+                finally:
+                    try:
+                        close = getattr(client, "close", None)
+                        if callable(close):
+                            close()
+                    except Exception:
+                        pass
             except Exception as e:
                 print(f"Polygon error for {ticker}: {e}. Falling back to yfinance.")
 
@@ -264,7 +272,7 @@ class MarketDataClient:
 
         # Try yfinance first — it has pre-computed ratios
         try:
-            stock = yf.Ticker(ticker, session=self.session)
+            stock = yf.Ticker(ticker)
             info = stock.info or {}
 
             ratios = {}

@@ -13,12 +13,18 @@ class TimeSeriesStore:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def store_ohlcv(self, company_id: str, df: pd.DataFrame):
+    async def store_ohlcv(self, company_id, df: pd.DataFrame):
         """Store OHLCV data from a pandas DataFrame (yfinance format)."""
+        import uuid as _uuid
+        if isinstance(company_id, str):
+            company_id = _uuid.UUID(company_id)
         for _, row in df.iterrows():
+            ts = row.name if isinstance(row.name, (pd.Timestamp, datetime)) else pd.to_datetime(row.name)
+            if isinstance(ts, pd.Timestamp) and ts.tzinfo is not None:
+                ts = ts.tz_convert("UTC").tz_localize(None)
             price = PriceData(
                 company_id=company_id,
-                date=row.name if isinstance(row.name, datetime) else pd.to_datetime(row.name),
+                date=ts.to_pydatetime() if isinstance(ts, pd.Timestamp) else ts,
                 open=float(row.get("Open", 0)),
                 high=float(row.get("High", 0)),
                 low=float(row.get("Low", 0)),

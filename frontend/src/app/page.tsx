@@ -12,21 +12,25 @@ import {
   ExternalLink,
   FileText,
   Newspaper,
-  Send,
   ShieldAlert,
-  Sparkles,
 } from "lucide-react";
-import { LineChart, Line, ResponsiveContainer } from "recharts";
+import {
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
 import { agentTag } from "@/lib/agents";
 import { CandlestickChart } from "@/components/terminal/CandlestickChart";
 import {
-  commandApi,
   marketApi,
   monitoringApi,
   strategiesApi,
   tradingApi,
   type AgentEvent,
-  type CommandJob,
   type MonitoringOverview,
   type TradingAccount,
   type TradingOrder,
@@ -432,8 +436,6 @@ export default function HomePage() {
   const [quotes, setQuotes] = useState<Array<{ ticker: string; price: number; changePct: number }>>([]);
   const [blotterOpen, setBlotterOpen] = useState(false);
   const [feedFilter, setFeedFilter] = useState<"ALL" | "ALERTS" | "RESEARCH" | "RISK" | "CODE">("ALL");
-  const [command, setCommand] = useState("");
-  const [activeJob, setActiveJob] = useState<CommandJob | null>(null);
   const [liveStrategies, setLiveStrategies] = useState<Strategy[]>([]);
   const [liveEvents, setLiveEvents] = useState<AgentEvent[]>([]);
 
@@ -497,11 +499,10 @@ export default function HomePage() {
     };
   }, []);
 
-  // Subscribe to real-time agent events via SSE.
+  // Subscribe to real-time agent events via SSE (all jobs, since this page no longer submits commands).
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    const qs = activeJob?.job_id ? `?job_id=${encodeURIComponent(activeJob.job_id)}` : "";
-    const es = new EventSource(`${apiUrl}/api/agent-events/stream${qs}`);
+    const es = new EventSource(`${apiUrl}/api/agent-events/stream`);
     es.onmessage = (ev) => {
       try {
         const event = JSON.parse(ev.data) as AgentEvent;
@@ -518,35 +519,7 @@ export default function HomePage() {
       console.warn("SSE connection error");
     };
     return () => es.close();
-  }, [activeJob?.job_id]);
-
-  // Poll the active job until it terminates.
-  useEffect(() => {
-    if (!activeJob || activeJob.status === "completed" || activeJob.status === "failed") return;
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const data = await commandApi.status(activeJob.job_id);
-        if (cancelled) return;
-        setActiveJob(data);
-        if (data.status === "completed" && data.strategy_id) {
-          setSelectedId(data.strategy_id);
-          // Trigger an immediate strategies refresh.
-          strategiesApi.list().then((d) => {
-            const mapped: Strategy[] = (d.strategies || []).map((s) => mapBackendStrategy(s)).filter(Boolean) as Strategy[];
-            setLiveStrategies(mapped);
-          });
-        }
-      } catch (e) {
-        console.warn("job poll failed", e);
-      }
-    };
-    const t = window.setInterval(tick, 1200);
-    return () => {
-      cancelled = true;
-      window.clearInterval(t);
-    };
-  }, [activeJob?.job_id, activeJob?.status]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -662,20 +635,6 @@ export default function HomePage() {
       .slice(0, 12);
   }, [overview, feedFilter, liveEvents]);
 
-  const handleCommand = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = command.trim();
-    if (!q) return;
-    try {
-      const res = await commandApi.submit(q);
-      setActiveJob({ job_id: res.job_id, status: "running", command: q });
-      setCommand("");
-    } catch (err) {
-      console.error("command submit failed", err);
-      setActiveJob({ job_id: "", status: "failed", error: String(err) });
-    }
-  };
-
   const filledOrders = orders.filter(
     (o) => o.status?.toUpperCase() === "FILLED" || o.status?.toUpperCase() === "WORKING"
   );
@@ -776,41 +735,6 @@ export default function HomePage() {
 
         {/* CENTER */}
         <main className="flex min-w-0 flex-col overflow-y-auto p-3">
-          {/* Command bar */}
-          <form onSubmit={handleCommand} className="flex items-center gap-2 rounded border border-border bg-card p-2">
-            <Sparkles className="h-4 w-4 text-muted-foreground" />
-            <input
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              placeholder="Ask AgentQR to research, backtest, explain, or update a strategy…"
-              className="flex-1 bg-transparent px-1 font-mono text-xs text-foreground outline-none placeholder:text-muted-foreground"
-            />
-            <button
-              type="submit"
-              className="flex items-center gap-1 rounded border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              Run <Send className="h-3 w-3" />
-            </button>
-          </form>
-
-          {activeJob && (
-            <div className="mt-2 flex items-center justify-between rounded border border-border bg-card px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              <span>
-                Job {activeJob.job_id || "—"} · <span className="text-foreground">{activeJob.status}</span>
-                {activeJob.strategy_name && <> · {activeJob.strategy_name}</>}
-                {activeJob.metrics && (
-                  <> · Sharpe {activeJob.metrics.sharpe} · DD {activeJob.metrics.max_drawdown}%</>
-                )}
-                {activeJob.error && <> · {activeJob.error}</>}
-              </span>
-              <button
-                onClick={() => setActiveJob(null)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                dismiss
-              </button>
-            </div>
-          )}
 
           {/* Selected strategy snapshot */}
           <section className="mt-3 rounded border border-border bg-card">
@@ -855,8 +779,44 @@ export default function HomePage() {
             <div className="h-[300px]">
               {liveDetail?.equity_curve && liveDetail.equity_curve.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={liveDetail.equity_curve}>
-                    <Line type="monotone" dataKey="equity" stroke="#e5e5e5" strokeWidth={1.25} dot={false} isAnimationActive={false} />
+                  <LineChart
+                    data={liveDetail.equity_curve}
+                    margin={{ top: 8, right: 12, bottom: 4, left: 4 }}
+                  >
+                    <CartesianGrid stroke="hsl(0 0% 12%)" strokeDasharray="0" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fill: "hsl(0 0% 35%)", fontSize: 9 }}
+                      axisLine={false}
+                      tickLine={false}
+                      minTickGap={60}
+                    />
+                    <YAxis
+                      tick={{ fill: "hsl(0 0% 35%)", fontSize: 9 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={42}
+                      domain={["auto", "auto"]}
+                      tickFormatter={(v: number) => v.toFixed(2)}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(0 0% 7%)",
+                        border: "1px solid hsl(0 0% 12%)",
+                        borderRadius: 2,
+                        fontSize: 10,
+                        color: "hsl(0 0% 85%)",
+                      }}
+                      formatter={(v: number) => [v.toFixed(3), "Equity (norm.)"]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="equity"
+                      stroke="#e5e5e5"
+                      strokeWidth={1.25}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (

@@ -89,3 +89,6 @@ docs/site/
 # ─── Misc ─────────────────────────────────────────────────
 recent.txt
 *.tmp
+
+# Claude Code session artifacts
+.claude/

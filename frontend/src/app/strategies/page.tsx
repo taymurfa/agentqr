@@ -8,22 +8,24 @@ import {
   Maximize2,
   Minimize2,
   Plus,
+  Send,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import {
-  AreaChart,
-  Area,
+  LineChart,
+  Line,
   ResponsiveContainer,
+  CartesianGrid,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ReferenceLine,
 } from "recharts";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { useChat } from "@/hooks/useChat";
-import { strategiesApi } from "@/lib/api";
+import { commandApi, strategiesApi, type CommandJob } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type BackendStrategy = {
@@ -33,16 +35,6 @@ type BackendStrategy = {
   recommendation: string;
   sharpe_ratio: number;
   created_at: string;
-};
-
-const tooltipStyle = {
-  contentStyle: {
-    background: "hsl(0 0% 7%)",
-    border: "1px solid hsl(0 0% 12%)",
-    borderRadius: 2,
-    fontSize: 10,
-    color: "hsl(0 0% 85%)",
-  },
 };
 
 // Deterministic 32-bit PRNG so each (seed,i) produces the same tick reproducibly.
@@ -123,9 +115,6 @@ function saveHistory(entries: HistoryEntry[]) {
   window.localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
 }
 
-type Window = "D0" | "D1" | "D2" | "ALL";
-const WINDOW_BARS: Record<Window, number> = { D0: 390, D1: 780, D2: 1170, ALL: 1950 };
-
 export default function StrategiesPageWrapper() {
   return (
     <Suspense fallback={null}>
@@ -140,7 +129,6 @@ function StrategiesPage() {
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [chartWindow, setChartWindow] = useState<Window>("ALL");
   const [chartFullscreen, setChartFullscreen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -185,6 +173,69 @@ function StrategiesPage() {
 
   // Backend strategies for the sidebar picker.
   const [backendStrategies, setBackendStrategies] = useState<BackendStrategy[]>([]);
+  const [command, setCommand] = useState("");
+  const [activeJob, setActiveJob] = useState<CommandJob | null>(null);
+
+  const handleCommand = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = command.trim();
+    if (!q) return;
+    try {
+      const res = await commandApi.submit(q);
+      setActiveJob({ job_id: res.job_id, status: "running", command: q });
+      setCommand("");
+    } catch (err) {
+      console.error("command submit failed", err);
+      setActiveJob({ job_id: "", status: "failed", error: String(err) });
+    }
+  };
+
+  // Poll the active job until it terminates; navigate to the new strategy when ready.
+  useEffect(() => {
+    if (!activeJob || ["completed", "failed", "rejected"].includes(activeJob.status)) return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const data = await commandApi.status(activeJob.job_id);
+        if (cancelled) return;
+        setActiveJob(data);
+        if ((data.status === "completed" || data.status === "rejected") && data.strategy_id) {
+          router.push(`/strategies?strategy=${data.strategy_id}`);
+          // Refresh sidebar.
+          strategiesApi
+            .list()
+            .then((d) => {
+              const rows = ((d.strategies as Array<Record<string, unknown>>) || []).map((s) => ({
+                id: String(s.id ?? ""),
+                name: String(s.name ?? "STRATEGY"),
+                tickers: (s.tickers as string[] | undefined) ?? [],
+                recommendation: String(s.recommendation ?? ""),
+                sharpe_ratio: Number(s.sharpe_ratio ?? 0),
+                created_at: String(s.created_at ?? ""),
+              }));
+              setBackendStrategies(rows.filter((r) => r.id));
+            })
+            .catch(() => undefined);
+        }
+      } catch (e) {
+        console.warn("job poll failed", e);
+      }
+    };
+    const t = window.setInterval(tick, 1200);
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+    };
+  }, [activeJob?.job_id, activeJob?.status, router]);
+
+  // Auto-dismiss the pill 6s after terminal state.
+  useEffect(() => {
+    if (!activeJob) return;
+    if (!["completed", "failed", "rejected"].includes(activeJob.status)) return;
+    const t = window.setTimeout(() => setActiveJob(null), 6000);
+    return () => window.clearTimeout(t);
+  }, [activeJob?.status, activeJob?.job_id]);
+
   useEffect(() => {
     let cancelled = false;
     const load = () => {
@@ -267,7 +318,6 @@ function StrategiesPage() {
         : [],
     [equity]
   );
-  const windowedPnl = useMemo(() => fullPnl.slice(-WINDOW_BARS[chartWindow]), [fullPnl, chartWindow]);
   const drawdown = useMemo(() => buildDrawdown(equity), [equity]);
   const computedReturn = equity.length
     ? ((equity[equity.length - 1].value - equity[0].value) / equity[0].value) * 100
@@ -374,34 +424,48 @@ function StrategiesPage() {
 
   const pnlChart = (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={windowedPnl} margin={{ top: 8, right: 16, bottom: 4, left: 4 }}>
-        <CartesianGrid stroke="hsl(0 0% 10%)" strokeDasharray="0" vertical={false} />
-        <XAxis dataKey="i" tick={{ fill: "hsl(0 0% 35%)", fontSize: 9 }} axisLine={false} tickLine={false} />
+      <LineChart data={fullPnl} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
+        <CartesianGrid stroke="hsl(0 0% 12%)" strokeDasharray="0" vertical={false} />
+        <XAxis
+          dataKey="i"
+          tick={{ fill: "hsl(0 0% 35%)", fontSize: 9 }}
+          axisLine={false}
+          tickLine={false}
+          minTickGap={60}
+        />
         <YAxis
           tick={{ fill: "hsl(0 0% 35%)", fontSize: 9 }}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(v) => `${v >= 0 ? "+" : "-"}${Math.abs(v / 1000).toFixed(0)}k`}
-          width={48}
+          width={56}
+          tickFormatter={(v: number) =>
+            `${v >= 0 ? "+" : "-"}$${Math.abs(v / 1000).toFixed(0)}k`
+          }
         />
         <Tooltip
-          {...tooltipStyle}
+          contentStyle={{
+            background: "hsl(0 0% 7%)",
+            border: "1px solid hsl(0 0% 12%)",
+            borderRadius: 2,
+            fontSize: 10,
+            color: "hsl(0 0% 85%)",
+          }}
           formatter={(v: number) => [
             `${v >= 0 ? "+" : "-"}$${Math.abs(Math.round(v)).toLocaleString()}`,
-            "P&L",
+            "Net P&L",
           ]}
+          labelFormatter={(l) => `Bar ${l}`}
         />
         <ReferenceLine y={0} stroke="hsl(0 0% 25%)" />
-        <Area
-          type="linear"
+        <Line
+          type="monotone"
           dataKey="value"
           stroke="#e5e5e5"
-          fill="rgba(229, 229, 229, 0.08)"
-          strokeWidth={1}
+          strokeWidth={1.25}
           dot={false}
           isAnimationActive={false}
         />
-      </AreaChart>
+      </LineChart>
     </ResponsiveContainer>
   );
 
@@ -475,21 +539,6 @@ function StrategiesPage() {
                 <span className="font-mono text-[10px] text-muted-foreground">{runTag}</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-0.5 rounded border border-border p-0.5 font-mono text-[10px]">
-                  {(["D0", "D1", "D2", "ALL"] as Window[]).map((w) => (
-                    <button
-                      key={w}
-                      onClick={() => setChartWindow(w)}
-                      className={`rounded px-2 py-0.5 uppercase tracking-widest transition-colors ${
-                        chartWindow === w
-                          ? "bg-foreground text-background"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {w}
-                    </button>
-                  ))}
-                </div>
                 <button
                   onClick={() => setChartFullscreen(true)}
                   className="rounded border border-border p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -655,7 +704,44 @@ function StrategiesPage() {
             </button>
           </div>
 
-          {/* Agent chat */}
+          {/* Research command bar — talks to /api/command (real backtest pipeline) */}
+          <div className="border-b border-border bg-card px-3 py-2">
+            <form onSubmit={handleCommand} className="flex items-center gap-2 rounded border border-border bg-background p-2">
+              <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                value={command}
+                onChange={(e) => setCommand(e.target.value)}
+                placeholder="Run a research pipeline (e.g. momentum on AAPL, MSFT, NVDA, TSLA)"
+                className="flex-1 bg-transparent px-1 font-mono text-xs text-foreground outline-none placeholder:text-muted-foreground"
+              />
+              <button
+                type="submit"
+                className="flex items-center gap-1 rounded border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                Run <Send className="h-3 w-3" />
+              </button>
+            </form>
+            {activeJob && (
+              <div className="mt-2 flex items-center justify-between rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                <span className="truncate">
+                  Job {activeJob.job_id || "—"} · <span className="text-foreground">{activeJob.status}</span>
+                  {activeJob.strategy_name && <> · {activeJob.strategy_name}</>}
+                  {activeJob.metrics && (
+                    <> · Sharpe {activeJob.metrics.sharpe} · DD {activeJob.metrics.max_drawdown}%</>
+                  )}
+                  {activeJob.error && <> · {activeJob.error}</>}
+                </span>
+                <button
+                  onClick={() => setActiveJob(null)}
+                  className="ml-2 text-muted-foreground hover:text-foreground"
+                >
+                  dismiss
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Free-form agent chat (legacy RAG endpoint) */}
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <ChatWindow messages={messages} streamingContent={streamingContent} isLoading={isLoading} />
             <ChatInput onSend={sendMessage} isLoading={isLoading} />
@@ -684,21 +770,6 @@ function StrategiesPage() {
               <span className="font-mono text-[10px] text-muted-foreground">{runTag}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-0.5 rounded border border-border p-0.5 font-mono text-[10px]">
-                {(["D0", "D1", "D2", "ALL"] as Window[]).map((w) => (
-                  <button
-                    key={w}
-                    onClick={() => setChartWindow(w)}
-                    className={`rounded px-2 py-0.5 uppercase tracking-widest transition-colors ${
-                      chartWindow === w
-                        ? "bg-foreground text-background"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {w}
-                  </button>
-                ))}
-              </div>
               <button
                 onClick={() => setChartFullscreen(false)}
                 className="rounded border border-border p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

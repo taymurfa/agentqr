@@ -183,7 +183,19 @@ export const agentsApi = {
 // Command (orchestrator entry point)
 export interface CommandJob {
   job_id: string;
-  status: "queued" | "running" | "completed" | "failed";
+  status:
+    | "queued"
+    | "running"
+    | "researching"
+    | "building_data"
+    | "modeling"
+    | "backtesting"
+    | "risk_review"
+    | "ready_for_paper"
+    | "paper_trading"
+    | "completed"
+    | "rejected"
+    | "failed";
   command?: string;
   strategy_id?: string;
   strategy_name?: string;

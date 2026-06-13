@@ -86,7 +86,7 @@ async def _ingest_market_data(db: AsyncSession, job_id: str, company: Company, t
     # OHLCV data
     df = market_client.get_ohlcv(ticker, period="2y")
     if not df.empty:
-        await ts_store.store_ohlcv(str(company.id), df)
+        await ts_store.store_ohlcv(company.id, df)
 
     # Fundamentals as text for RAG
     fundamentals_text = market_client.get_fundamentals_text(ticker)
