@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -126,7 +126,15 @@ function saveHistory(entries: HistoryEntry[]) {
 type Window = "D0" | "D1" | "D2" | "ALL";
 const WINDOW_BARS: Record<Window, number> = { D0: 390, D1: 780, D2: 1170, ALL: 1950 };
 
-export default function StrategiesPage() {
+export default function StrategiesPageWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <StrategiesPage />
+    </Suspense>
+  );
+}
+
+function StrategiesPage() {
   const { messages, isLoading, agentStatus, streamingContent, sendMessage, clearChat } = useChat();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
